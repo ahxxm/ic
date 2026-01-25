@@ -1,9 +1,11 @@
 package com.example.imagecompressor.domain
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.exifinterface.media.ExifInterface
 import com.awxkee.aire.Aire
+import io.github.awxkee.jpegli.coder.IccStrategy
 import io.github.awxkee.jpegli.coder.JpegliCoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,7 +45,8 @@ class ImageCompressor(private val context: Context) {
                         bitmap = bitmap,
                         quality = options.quality,
                         progressive = true,
-                        outputStream = out
+                        outputStream = out,
+                        strategy = IccStrategy.XYB
                     )
                     out.toByteArray()
                 }

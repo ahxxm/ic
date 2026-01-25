@@ -24,14 +24,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,7 +50,17 @@ import com.example.imagecompressor.domain.ImageItem
 import com.example.imagecompressor.domain.ImageRepository
 import kotlinx.coroutines.delay
 import java.io.File
-import kotlin.math.roundToInt
+private enum class QualityLevel(val label: String) {
+    OK("ok"),
+    GOOD("good"),
+    GREAT("great");
+
+    fun qualityFor(encoder: Encoder): Int = when (this) {
+        OK -> if (encoder == Encoder.MOZJPEG) 75 else 65
+        GOOD -> if (encoder == Encoder.MOZJPEG) 85 else 75
+        GREAT -> if (encoder == Encoder.MOZJPEG) 90 else 82
+    }
+}
 
 private sealed class SampleState {
     data object Loading : SampleState()
@@ -70,7 +78,7 @@ fun OptionsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var quality by rememberSaveable { mutableFloatStateOf(85f) }
+    var qualityLevel by rememberSaveable { mutableStateOf(QualityLevel.GOOD) }
     var preserveExif by rememberSaveable { mutableStateOf(true) }
     var convertPng by rememberSaveable { mutableStateOf(false) }
     var encoder by rememberSaveable { mutableStateOf(Encoder.MOZJPEG) }
@@ -107,7 +115,8 @@ fun OptionsScreen(
     }
 
     // Recompress when compression options change (debounced)
-    LaunchedEffect(sampleImage, quality.roundToInt(), encoder, preserveExif) {
+    val quality = qualityLevel.qualityFor(encoder)
+    LaunchedEffect(sampleImage, quality, encoder, preserveExif) {
         val sample = sampleImage ?: return@LaunchedEffect
 
         sampleState = SampleState.Loading
@@ -116,7 +125,7 @@ fun OptionsScreen(
         currentTempFile?.delete()
         val compressor = ImageCompressor(context)
         val options = CompressionOptions(
-            quality = quality.roundToInt(),
+            quality = quality,
             preserveExif = preserveExif,
             convertPng = convertPng,
             encoder = encoder
@@ -158,19 +167,15 @@ fun OptionsScreen(
             // Live preview at top
             when (val state = sampleState) {
                 is SampleState.Loading -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text("Compressing...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -188,22 +193,22 @@ fun OptionsScreen(
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Quality slider
+            // Quality level
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Quality", style = MaterialTheme.typography.bodyLarge)
-                Text("${quality.roundToInt()}", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.weight(1f))
+                QualityLevel.entries.forEach { level ->
+                    FilterChip(
+                        selected = qualityLevel == level,
+                        onClick = { qualityLevel = level },
+                        label = { Text("${level.label} q${level.qualityFor(encoder)}") }
+                    )
+                }
             }
-            Slider(
-                value = quality,
-                onValueChange = { quality = it },
-                valueRange = 75f..95f,
-                steps = 3,
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -258,7 +263,7 @@ fun OptionsScreen(
                 onClick = {
                     onConfirm(
                         CompressionOptions(
-                            quality = quality.roundToInt(),
+                            quality = quality,
                             preserveExif = preserveExif,
                             convertPng = convertPng,
                             encoder = encoder
@@ -280,40 +285,47 @@ private fun SamplePreview(image: ImageItem, result: CompressionResult) {
     val color = if (savingsPct >= 10) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.error
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AsyncImage(
             model = image.uri,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
-                .size(72.dp)
+                .fillMaxWidth()
+                .height(200.dp)
                 .clip(RoundedCornerShape(8.dp))
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = image.name,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Text(
+            text = image.name,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = "${formatSize(result.originalSize)} → ${formatSize(result.compressedSize)}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "-$savingsPct%",
+                style = MaterialTheme.typography.titleMedium,
+                color = color
+            )
         }
-
-        Text(
-            text = "-$savingsPct%",
-            style = MaterialTheme.typography.titleLarge,
-            color = color
-        )
     }
 }
 

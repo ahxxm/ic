@@ -26,6 +26,7 @@ Native Android app for JPEG compression (jpegli, mozjpeg).
 Upload signed APK to catbox.moe (no expiration):
 ```bash
 curl -F "reqtype=fileupload" -F "fileToUpload=@app/build/outputs/apk/release/app-release.apk" https://catbox.moe/user/api.php
+# our network is unstable, after upload, download and compare MD5 hash
 ```
 
 ## Progress Tracking
