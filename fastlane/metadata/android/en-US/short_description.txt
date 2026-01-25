@@ -1,0 +1,1 @@
+Compress JPEG images using mozjpeg and jpegli encoders

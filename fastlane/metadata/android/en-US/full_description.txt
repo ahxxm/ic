@@ -1,0 +1,15 @@
+A minimalist Android app for JPEG compression using high-quality encoders.
+
+Features:
+- Browse and select image folders
+- Quality slider (70-95)
+- Preview estimated savings before compression
+- EXIF metadata preservation option
+- PNG to JPEG conversion option
+- Batch processing with progress notification
+
+Encoders:
+- mozjpeg: Mozilla's optimized JPEG encoder
+- jpegli: Google's high-quality JPEG encoder from libjxl
+
+This app requires no internet access and processes all images locally on your device.

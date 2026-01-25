@@ -3,38 +3,12 @@
 ## Phase 0: Project Scaffold
 
 **Concrete steps:**
-- [ ] Create Android Studio project: Empty Compose Activity template
-- [ ] Configure `build.gradle.kts`:
-  ```kotlin
-  android {
-      namespace = "com.example.imagecompressor"
-      compileSdk = 34
-      defaultConfig {
-          minSdk = 30  // Android 11+
-          targetSdk = 34
-      }
-      buildFeatures { compose = true }
-  }
+- [x] Create Android project with Gradle wrapper
+- [x] Configure `build.gradle.kts` (compileSdk=35, minSdk=30, Compose enabled)
+- [x] Create F-Droid metadata structure
+- [x] Basic MainActivity + single NavHost with placeholder screens
 
-  dependencies {
-      implementation(platform("androidx.compose:compose-bom:2024.10.00"))
-      implementation("androidx.compose.material3:material3")
-      implementation("androidx.activity:activity-compose")
-      implementation("androidx.navigation:navigation-compose")
-  }
-  ```
-- [ ] Create F-Droid metadata structure:
-  ```
-  fastlane/metadata/android/en-US/
-  ├── title.txt           # App name
-  ├── short_description.txt  # <80 chars
-  ├── full_description.txt
-  └── changelogs/
-      └── 1.txt           # Version 1 changelog
-  ```
-- [ ] Basic MainActivity + single NavHost
-
-**Verification:** `./gradlew assembleDebug` succeeds
+**Verification:** `./gradlew assembleDebug` (requires x86-64 build environment)
 
 ---
 
@@ -309,7 +283,7 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ## Current Focus
 
-**Phase 0** - Project scaffold.
+**Phase 1** - Storage & file handling.
 
 ## Risk Register
 
