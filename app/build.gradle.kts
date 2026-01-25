@@ -23,9 +23,14 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+    }
 
-        ndk {
-            abiFilters += "arm64-v8a"
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 
@@ -63,6 +68,20 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86" to 3, "x86_64" to 4)
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val abiFilter = output.filters.find {
+                it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+            }?.identifier
+            val baseVersionCode = output.versionCode.get()
+            output.versionCode.set(baseVersionCode * 10 + (abiCodes[abiFilter] ?: 0))
+        }
     }
 }
 
