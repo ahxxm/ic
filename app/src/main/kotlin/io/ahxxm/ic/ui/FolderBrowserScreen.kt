@@ -17,15 +17,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,15 +58,18 @@ private fun hasMediaPermission(context: Context): Boolean {
     return ContextCompat.checkSelfPermission(context, mediaPermission) == PermissionChecker.PERMISSION_GRANTED
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FolderBrowserScreen(
     onFolderSelected: (bucketId: Long, folderName: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var permissionGranted by remember { mutableStateOf(hasMediaPermission(context)) }
     var folders by remember { mutableStateOf<List<FolderSummary>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
+    var refreshing by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -70,11 +79,15 @@ fun FolderBrowserScreen(
         permissionGranted = results[mediaPermission] == true
     }
 
+    suspend fun loadFolders() {
+        val repo = ImageRepository(context.contentResolver)
+        folders = withContext(Dispatchers.IO) { repo.getFolders() }
+    }
+
     LaunchedEffect(permissionGranted) {
         if (permissionGranted && folders.isEmpty()) {
             loading = true
-            val repo = ImageRepository(context.contentResolver)
-            folders = repo.getFolders()
+            loadFolders()
             loading = false
         }
     }
@@ -89,24 +102,37 @@ fun FolderBrowserScreen(
             loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-            folders.isEmpty() -> {
-                Text(
-                    text = "No image folders found",
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
             else -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = "Select folder",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                    HorizontalDivider()
-                    FolderList(
-                        folders = folders,
-                        onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
-                    )
+                PullToRefreshBox(
+                    isRefreshing = refreshing,
+                    onRefresh = {
+                        scope.launch {
+                            refreshing = true
+                            loadFolders()
+                            refreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (folders.isEmpty()) {
+                        Text(
+                            text = "No image folders found",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                text = "Select folder to compress",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                            HorizontalDivider()
+                            FolderList(
+                                folders = folders,
+                                onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
+                            )
+                        }
+                    }
                 }
             }
         }
