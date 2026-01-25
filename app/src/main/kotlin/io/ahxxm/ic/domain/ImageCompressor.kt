@@ -93,6 +93,8 @@ class ImageCompressor(private val context: Context) {
     }
 
     companion object {
+        // NOTE: tags like `XiaomiModel`(0x9a00) aren't accepted by ExifInterface,
+        // so device name and `XiaomiSettings`(0x9999) get lost.
         // Mirrors ExifInterface.EXIF_TAGS structure (list of lists by IFD type)
         // Excludes: thumbnail tags (stale after recompression), maker notes (proprietary)
         private val EXIF_TAGS = listOf(
