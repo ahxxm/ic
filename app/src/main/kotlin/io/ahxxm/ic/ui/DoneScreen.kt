@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -34,8 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.example.imagecompressor.CompressionService
-import com.example.imagecompressor.domain.ImageCompressionPreview
+import io.ahxxm.ic.CompressionService
+import io.ahxxm.ic.domain.ImageCompressionPreview
 
 sealed class ProgressState {
     data object RequestingNotificationPermission : ProgressState()
@@ -68,7 +68,7 @@ fun ProgressScreen(
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             state = ProgressState.Compressing
-            CompressionService.start(context, selectedPreviews)
+            CompressionService.startSave(context, selectedPreviews)
         } else {
             state = ProgressState.Error("Write access denied")
         }
@@ -81,7 +81,7 @@ fun ProgressScreen(
                 state = ProgressState.Complete
             }
         }
-        val filter = IntentFilter(CompressionService.ACTION_COMPRESSION_COMPLETE)
+        val filter = IntentFilter(CompressionService.ACTION_SAVE_COMPLETE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -95,7 +95,7 @@ fun ProgressScreen(
         if (state == ProgressState.Compressing) {
             while (state == ProgressState.Compressing) {
                 kotlinx.coroutines.delay(500)
-                if (CompressionService.completionResult != null) {
+                if (CompressionService.saveResult != null) {
                     state = ProgressState.Complete
                 }
             }
@@ -126,7 +126,7 @@ fun ProgressScreen(
                 writeRequestLauncher.launch(IntentSenderRequest.Builder(writeRequest).build())
             }
             ProgressState.Complete -> {
-                val result = CompressionService.completionResult
+                val result = CompressionService.saveResult
                 if (result != null) {
                     onComplete(result.count, result.savedBytes)
                 } else {

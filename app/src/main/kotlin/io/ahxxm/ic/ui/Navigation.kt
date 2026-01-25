@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,8 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.imagecompressor.domain.CompressionOptions
-import com.example.imagecompressor.domain.ImageCompressionPreview
+import io.ahxxm.ic.domain.CompressionOptions
+import io.ahxxm.ic.domain.ImageCompressionPreview
 import java.net.URLDecoder
 import java.net.URLEncoder
 

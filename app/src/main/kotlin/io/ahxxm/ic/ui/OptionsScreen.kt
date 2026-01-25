@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,12 +42,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.example.imagecompressor.domain.CompressionOptions
-import com.example.imagecompressor.domain.CompressionResult
-import com.example.imagecompressor.domain.Encoder
-import com.example.imagecompressor.domain.ImageCompressor
-import com.example.imagecompressor.domain.ImageItem
-import com.example.imagecompressor.domain.ImageRepository
+import io.ahxxm.ic.domain.CompressionOptions
+import io.ahxxm.ic.domain.CompressionResult
+import io.ahxxm.ic.domain.Encoder
+import io.ahxxm.ic.domain.ImageCompressor
+import io.ahxxm.ic.domain.ImageItem
+import io.ahxxm.ic.domain.ImageRepository
 import kotlinx.coroutines.delay
 import java.io.File
 private enum class QualityLevel(val label: String) {

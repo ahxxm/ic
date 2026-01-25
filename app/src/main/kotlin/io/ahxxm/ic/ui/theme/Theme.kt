@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui.theme
+package io.ahxxm.ic.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme

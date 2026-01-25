@@ -1,4 +1,4 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
 import android.Manifest
 import android.content.Context
@@ -32,19 +32,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
-import com.example.imagecompressor.domain.FolderSummary
-import com.example.imagecompressor.domain.ImageRepository
+import io.ahxxm.ic.domain.FolderSummary
+import io.ahxxm.ic.domain.ImageRepository
 import java.util.Locale
 
-private fun requiredPermission(): String =
+private fun requiredPermissions(): List<String> = buildList {
+    add(
+        if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
+        else Manifest.permission.READ_EXTERNAL_STORAGE
+    )
     if (Build.VERSION.SDK_INT >= 33) {
-        Manifest.permission.READ_MEDIA_IMAGES
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+        add(Manifest.permission.POST_NOTIFICATIONS)
     }
+}
 
-private fun hasPermission(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(context, requiredPermission()) == PermissionChecker.PERMISSION_GRANTED
+private fun hasMediaPermission(context: Context): Boolean {
+    val mediaPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
+        else Manifest.permission.READ_EXTERNAL_STORAGE
+    return ContextCompat.checkSelfPermission(context, mediaPermission) == PermissionChecker.PERMISSION_GRANTED
+}
 
 @Composable
 fun FolderBrowserScreen(
@@ -52,14 +58,16 @@ fun FolderBrowserScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var permissionGranted by remember { mutableStateOf(hasPermission(context)) }
+    var permissionGranted by remember { mutableStateOf(hasMediaPermission(context)) }
     var folders by remember { mutableStateOf<List<FolderSummary>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        permissionGranted = granted
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val mediaPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
+            else Manifest.permission.READ_EXTERNAL_STORAGE
+        permissionGranted = results[mediaPermission] == true
     }
 
     LaunchedEffect(permissionGranted) {
@@ -75,7 +83,7 @@ fun FolderBrowserScreen(
         when {
             !permissionGranted -> {
                 PermissionRequest(
-                    onRequestPermission = { permissionLauncher.launch(requiredPermission()) }
+                    onRequestPermission = { permissionLauncher.launch(requiredPermissions().toTypedArray()) }
                 )
             }
             loading -> {
@@ -115,16 +123,16 @@ private fun PermissionRequest(onRequestPermission: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Image access required",
+            text = "Permissions required",
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "This app needs permission to read your photos for compression.",
+            text = "Image access: to read and compress your photos.\n\nNotifications (optional): shows compression progress when you switch apps.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(vertical = 16.dp)
         )
         Button(onClick = onRequestPermission) {
-            Text("Grant Permission")
+            Text("Grant Permissions")
         }
     }
 }

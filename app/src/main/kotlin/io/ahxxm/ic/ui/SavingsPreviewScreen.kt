@@ -1,5 +1,9 @@
-package com.example.imagecompressor.ui
+package io.ahxxm.ic.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,11 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
-import com.example.imagecompressor.domain.CompressionOptions
-import com.example.imagecompressor.domain.ImageCompressor
-import com.example.imagecompressor.domain.ImageCompressionPreview
-import com.example.imagecompressor.domain.ImageRepository
+import io.ahxxm.ic.CompressionService
+import io.ahxxm.ic.domain.CompressionOptions
+import io.ahxxm.ic.domain.ImageCompressionPreview
+import io.ahxxm.ic.domain.ImageRepository
 
 sealed class SavingsPreviewState {
     data class Compressing(val current: Int, val total: Int) : SavingsPreviewState()
@@ -82,10 +86,49 @@ fun SavingsPreviewScreen(
         }
     }
 
+    // Listen for compression completion
+    DisposableEffect(bucketId, options) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val results = CompressionService.compressionResults ?: emptyList()
+                selections = results.map { preview ->
+                    !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
+                }
+                state = SavingsPreviewState.Ready(results)
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(CompressionService.ACTION_COMPRESS_COMPLETE),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
+    // Poll progress and check for completion
+    LaunchedEffect(state) {
+        if (state is SavingsPreviewState.Compressing) {
+            while (state is SavingsPreviewState.Compressing) {
+                kotlinx.coroutines.delay(200)
+                val progress = CompressionService.compressionProgress
+                if (progress != null) {
+                    state = SavingsPreviewState.Compressing(progress.first, progress.second)
+                }
+                val results = CompressionService.compressionResults
+                if (results != null) {
+                    selections = results.map { preview ->
+                        !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
+                    }
+                    state = SavingsPreviewState.Ready(results)
+                }
+            }
+        }
+    }
+
+    // Start compression service
     LaunchedEffect(bucketId, options) {
         val repository = ImageRepository(context.contentResolver)
-        val compressor = ImageCompressor(context)
-
         val allImages = repository.getImagesInFolder(bucketId)
         val images = allImages.filter { it.isJpeg || (it.isPng && options.convertPng) }
 
@@ -101,28 +144,7 @@ fun SavingsPreviewScreen(
         }
 
         state = SavingsPreviewState.Compressing(0, images.size)
-
-        val results = mutableListOf<ImageCompressionPreview>()
-        images.forEachIndexed { index, image ->
-            state = SavingsPreviewState.Compressing(index + 1, images.size)
-            val result = compressor.compressImage(image, options)
-            if (result.success) {
-                val preview = ImageCompressionPreview(
-                    image = image,
-                    originalSize = result.originalSize,
-                    compressedSize = result.compressedSize,
-                    tempFile = result.tempFile,
-                    selected = true
-                )
-                results.add(preview)
-            }
-        }
-
-        val sorted = results.sortedByDescending { it.savingsBytes }
-        selections = sorted.map { preview ->
-            !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
-        }
-        state = SavingsPreviewState.Ready(sorted)
+        CompressionService.startCompression(context, images, options)
     }
 
     Scaffold(

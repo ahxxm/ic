@@ -1,4 +1,4 @@
-package com.example.imagecompressor.domain
+package io.ahxxm.ic.domain
 
 import android.net.Uri
 

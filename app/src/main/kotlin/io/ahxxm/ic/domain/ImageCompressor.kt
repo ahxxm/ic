@@ -1,4 +1,4 @@
-package com.example.imagecompressor.domain
+package io.ahxxm.ic.domain
 
 import android.content.Context
 import android.graphics.Bitmap

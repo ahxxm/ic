@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.imagecompressor"
+    namespace = "io.ahxxm.ic"
     compileSdk = 36
 
     signingConfigs {
@@ -18,7 +18,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.imagecompressor"
+        applicationId = "io.ahxxm.ic"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
