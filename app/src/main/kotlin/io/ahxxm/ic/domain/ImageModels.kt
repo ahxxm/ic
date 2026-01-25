@@ -35,8 +35,7 @@ data class ImageCompressionPreview(
     val image: ImageItem,
     val originalSize: Long,
     val compressedSize: Long,
-    val tempFile: java.io.File?,
-    val selected: Boolean
+    val tempFile: java.io.File?
 ) {
     val savingsBytes: Long get() = originalSize - compressedSize
     val savingsPercent: Float get() = if (originalSize > 0) savingsBytes.toFloat() / originalSize else 0f

@@ -64,8 +64,7 @@ class CompressionService : Service() {
                             image = image,
                             originalSize = result.originalSize,
                             compressedSize = result.compressedSize,
-                            tempFile = result.tempFile,
-                            selected = true
+                            tempFile = result.tempFile
                         )
                     )
                 }
