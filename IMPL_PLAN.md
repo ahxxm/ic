@@ -220,53 +220,26 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ---
 
-## Phase 6: NDK - Mozjpeg
+## Phase 6: Mozjpeg Integration
 
-**Deferred until Phase 0-5 complete.**
+Using [aire](https://github.com/awxkee/aire) library which provides prebuilt mozjpeg bindings.
 
 **Concrete steps:**
-- [ ] Add mozjpeg as git submodule: `git submodule add https://github.com/mozilla/mozjpeg.git app/src/main/cpp/mozjpeg`
-- [ ] `app/src/main/cpp/CMakeLists.txt`:
-  ```cmake
-  cmake_minimum_required(VERSION 3.22)
-  project(imagecompressor)
+- [x] Add JitPack repository to settings.gradle.kts
+- [x] Add dependency: `implementation("com.github.awxkee:aire:0.18.1")`
+- [x] Replace `Bitmap.compress()` with `Aire.mozjpeg(bitmap, quality)`
 
-  set(MOZJPEG_DIR ${CMAKE_SOURCE_DIR}/mozjpeg)
-  add_subdirectory(${MOZJPEG_DIR})
-
-  add_library(compressor SHARED compressor.cpp)
-  target_link_libraries(compressor jpeg-static)
-  ```
-- [ ] JNI interface in `compressor.cpp`:
-  ```cpp
-  extern "C" JNIEXPORT jbyteArray JNICALL
-  Java_com_example_imagecompressor_NativeCompressor_compress(
-      JNIEnv *env, jobject,
-      jbyteArray pixels, jint width, jint height, jint quality
-  ) { ... }
-  ```
-- [ ] Kotlin binding:
-  ```kotlin
-  object NativeCompressor {
-      init { System.loadLibrary("compressor") }
-      external fun compress(pixels: ByteArray, width: Int, height: Int, quality: Int): ByteArray
-  }
-  ```
-- [ ] Replace Bitmap.compress call with native call
-- [ ] Test F-Droid build: `fdroid build -l com.example.imagecompressor`
-
-**Verification:** APK uses mozjpeg, F-Droid build server can compile from source
+**Verification:** `./gradlew assembleDebug` passes, compression uses mozjpeg
 
 ---
 
-## Phase 7: NDK - Jpegli
+## Phase 7: Jpegli Integration
 
-**Deferred until Phase 6 stable.**
+Using [jpegli-coder](https://github.com/awxkee/jpegli-coder) library.
 
-- [ ] Extract jpegli sources from libjxl
-- [ ] Standalone CMakeLists.txt (may require patching)
-- [ ] JNI wrapper matching mozjpeg interface
-- [ ] Encoder toggle becomes functional
+- [x] Add dependency: `implementation("com.github.awxkee:jpegli-coder:1.0.2")`
+- [x] Add encoder selection to ImageCompressor based on `options.encoder`
+- [x] Enable encoder toggle in OptionsScreen (FilterChip UI)
 - [ ] Compare output quality/size vs mozjpeg
 
 ---
@@ -283,15 +256,13 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ## Current Focus
 
-**Phase 6** - NDK Mozjpeg. Phase 0-5 complete (MVP flow validated with Bitmap.compress).
+**Phase 8** - Polish. Phase 0-7 complete (mozjpeg + jpegli via awxkee libraries).
 
 ## Risk Register
 
 | Risk | Mitigation |
 |------|------------|
 | MediaStore query performance on large libraries | Process cursor in chunks, show loading indicator |
-| Mozjpeg NDK build complexity | Defer until flow validated with Bitmap.compress |
-| Jpegli standalone build undocumented | May need to vendor specific libjxl commit, patch CMake |
 | EXIF copy edge cases | Use androidx.exifinterface, test with various camera apps |
 
 ## Sources

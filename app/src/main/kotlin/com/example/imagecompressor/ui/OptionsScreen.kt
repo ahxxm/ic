@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ fun OptionsScreen(
     var quality by rememberSaveable { mutableFloatStateOf(80f) }
     var preserveExif by rememberSaveable { mutableStateOf(true) }
     var convertPng by rememberSaveable { mutableStateOf(false) }
+    var encoder by rememberSaveable { mutableStateOf(Encoder.MOZJPEG) }
 
     Column(
         modifier = modifier
@@ -69,20 +71,24 @@ fun OptionsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Encoder (disabled for now)
+        // Encoder selection
+        Text(
+            text = "Encoder",
+            style = MaterialTheme.typography.bodyLarge
+        )
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Encoder: mozjpeg",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FilterChip(
+                selected = encoder == Encoder.MOZJPEG,
+                onClick = { encoder = Encoder.MOZJPEG },
+                label = { Text("mozjpeg") }
             )
-            Text(
-                text = " (jpegli coming later)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
+            FilterChip(
+                selected = encoder == Encoder.JPEGLI,
+                onClick = { encoder = Encoder.JPEGLI },
+                label = { Text("jpegli") }
             )
         }
 
@@ -125,7 +131,7 @@ fun OptionsScreen(
                         quality = quality.roundToInt(),
                         preserveExif = preserveExif,
                         convertPng = convertPng,
-                        encoder = Encoder.MOZJPEG
+                        encoder = encoder
                     )
                 )
             },

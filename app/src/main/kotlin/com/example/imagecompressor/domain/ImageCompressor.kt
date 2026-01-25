@@ -1,13 +1,14 @@
 package com.example.imagecompressor.domain
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.exifinterface.media.ExifInterface
+import com.awxkee.aire.Aire
+import io.github.awxkee.jpegli.coder.JpegliCoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 
 class ImageCompressor(private val context: Context) {
 
@@ -35,9 +36,18 @@ class ImageCompressor(private val context: Context) {
                 )
 
             val tempFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
-            FileOutputStream(tempFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, options.quality, out)
+            val compressed = when (options.encoder) {
+                Encoder.MOZJPEG -> Aire.mozjpeg(bitmap, options.quality)
+                Encoder.JPEGLI -> ByteArrayOutputStream().use { out ->
+                    JpegliCoder.compress(
+                        bitmap = bitmap,
+                        quality = options.quality,
+                        outputStream = out
+                    )
+                    out.toByteArray()
+                }
             }
+            tempFile.writeBytes(compressed)
             bitmap.recycle()
 
             if (options.preserveExif && image.isJpeg) {

@@ -14,6 +14,10 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {
@@ -49,6 +53,10 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Native image encoders
+    implementation("com.github.awxkee:aire:0.18.1")
+    implementation("com.github.awxkee:jpegli-coder:1.0.2")
 
     testImplementation("junit:junit:4.13.2")
 
