@@ -2,7 +2,7 @@ package io.ahxxm.ic
 
 import android.app.Application
 
-class ImageCompressorApp : Application() {
+class App : Application() {
 
     override fun onCreate() {
         super.onCreate()

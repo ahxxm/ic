@@ -1,6 +1,9 @@
-A minimalist and optinionated Android app for offline/on-device JPEG/PNG compression.
+# Image Compressor
 
-Features:
+A minimalist and opinionated Android app for offline/on-device JPEG/PNG compression.
+
+## Features
+
 - Browse and select image folders
 - 3 built-in quality levels for MozJPEG and Jpegli
 - "Smart" filter to skip well-compressed images
@@ -14,4 +17,13 @@ Encoders:
 - mozjpeg: Mozilla's optimized JPEG encoder
 - jpegli: Google's high-quality JPEG encoder from libjxl
 
-This app requires no internet access and processes all images locally on your device.
+## Build
+
+```bash
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+## License
+
+MIT

@@ -1,1 +1,1 @@
-Compress JPEG/PNG images using mozjpeg or jpegli encoders
+Compress JPEG/PNG images using mozjpeg or jpegli offline

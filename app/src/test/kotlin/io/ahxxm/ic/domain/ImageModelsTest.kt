@@ -1,4 +1,4 @@
-package com.example.imagecompressor.domain
+package io.ahxxm.ic.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
