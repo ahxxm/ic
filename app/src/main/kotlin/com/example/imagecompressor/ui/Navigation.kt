@@ -1,19 +1,11 @@
 package com.example.imagecompressor.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,6 +43,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     var currentOptions by remember { mutableStateOf(CompressionOptions()) }
     var selectedForComparison by remember { mutableStateOf<ImageCompressionPreview?>(null) }
+    var selectedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>>(emptyList()) }
+    var completionCount by remember { mutableStateOf(0) }
+    var completionSavedBytes by remember { mutableStateOf(0L) }
 
     NavHost(
         navController = navController,
@@ -111,7 +106,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             SavingsPreviewScreen(
                 bucketId = bucketId,
                 options = currentOptions,
-                onConfirm = { navController.navigate(Screen.Progress.route) },
+                onConfirm = { previews ->
+                    selectedPreviews = previews
+                    navController.navigate(Screen.Progress.route)
+                },
                 onBack = { navController.popBackStack() },
                 onImageClick = { preview ->
                     selectedForComparison = preview
@@ -130,35 +128,29 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(Screen.Progress.route) {
-            PlaceholderScreen("Compression Progress")
+            ProgressScreen(
+                selectedPreviews = selectedPreviews,
+                onComplete = { count, savedBytes ->
+                    completionCount = count
+                    completionSavedBytes = savedBytes
+                    navController.navigate(Screen.Done.route) {
+                        popUpTo(Screen.FolderBrowser.route)
+                    }
+                },
+                onCancel = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Done.route) {
-            PlaceholderScreen("Compression Complete")
-        }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(
-    title: String,
-    nextLabel: String? = null,
-    onNext: (() -> Unit)? = null
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(text = title)
-            if (nextLabel != null && onNext != null) {
-                Button(onClick = onNext) {
-                    Text(nextLabel)
+            DoneScreen(
+                count = completionCount,
+                savedBytes = completionSavedBytes,
+                onFinish = {
+                    navController.navigate(Screen.FolderBrowser.route) {
+                        popUpTo(Screen.FolderBrowser.route) { inclusive = true }
+                    }
                 }
-            }
+            )
         }
     }
 }

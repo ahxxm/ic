@@ -183,14 +183,14 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 ```
 
 **Concrete steps:**
-- [ ] Request POST_NOTIFICATIONS permission (Android 13+)
-- [ ] Before starting service, request write access:
+- [x] Request POST_NOTIFICATIONS permission (Android 13+)
+- [x] Before starting service, request write access:
   ```kotlin
   val urisToModify = selectedImages.map { it.image.uri }
   val writeRequest = MediaStore.createWriteRequest(contentResolver, urisToModify)
   startIntentSenderForResult(writeRequest.intentSender, REQUEST_WRITE_ACCESS, ...)
   ```
-- [ ] On user approval, start CompressionService:
+- [x] On user approval, start CompressionService:
   ```kotlin
   override fun onStartCommand(...): Int {
       startForeground(NOTIF_ID, buildNotification(0, total))
@@ -205,7 +205,7 @@ implementation("io.coil-kt:coil-compose:2.5.0")
       return START_NOT_STICKY
   }
   ```
-- [ ] Overwrite via ContentResolver:
+- [x] Overwrite via ContentResolver:
   ```kotlin
   fun overwriteImage(uri: Uri, tempFile: File) {
       contentResolver.openOutputStream(uri, "wt")?.use { out ->
@@ -213,8 +213,8 @@ implementation("io.coil-kt:coil-compose:2.5.0")
       }
   }
   ```
-- [ ] Delete temp files after each successful write
-- [ ] Done screen: "Saved X.X MB across N images"
+- [x] Delete temp files after each successful write
+- [x] Done screen: "Saved X.X MB across N images"
 
 **Verification:** Start compression, see progress notification, files overwritten, temp cleaned
 
@@ -283,7 +283,7 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ## Current Focus
 
-**Phase 5** - Commit Flow. Phase 1-4 complete.
+**Phase 6** - NDK Mozjpeg. Phase 0-5 complete (MVP flow validated with Bitmap.compress).
 
 ## Risk Register
 
