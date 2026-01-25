@@ -8,6 +8,15 @@ android {
     namespace = "com.example.imagecompressor"
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../release.keystore")
+            storePassword = "yourpassword"
+            keyAlias = "release"
+            keyPassword = "yourpassword"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.imagecompressor"
         minSdk = 30
@@ -22,6 +31,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

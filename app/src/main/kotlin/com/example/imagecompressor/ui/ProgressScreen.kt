@@ -74,7 +74,7 @@ fun ProgressScreen(
         }
     }
 
-    // Listen for service completion
+    // Listen for service completion via broadcast
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -88,6 +88,18 @@ fun ProgressScreen(
             context.registerReceiver(receiver, filter)
         }
         onDispose { context.unregisterReceiver(receiver) }
+    }
+
+    // Fallback polling in case broadcast is missed
+    LaunchedEffect(state) {
+        if (state == ProgressState.Compressing) {
+            while (state == ProgressState.Compressing) {
+                kotlinx.coroutines.delay(500)
+                if (CompressionService.completionResult != null) {
+                    state = ProgressState.Complete
+                }
+            }
+        }
     }
 
     // Handle state transitions

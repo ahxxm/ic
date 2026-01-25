@@ -52,6 +52,7 @@ class CompressionService : Service() {
             completionResult = CompletionResult(successCount, totalSaved)
             pendingItems = null
 
+            stopForeground(STOP_FOREGROUND_REMOVE)
             sendBroadcast(Intent(ACTION_COMPRESSION_COMPLETE))
             stopSelf()
         }

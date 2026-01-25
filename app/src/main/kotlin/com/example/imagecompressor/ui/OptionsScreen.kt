@@ -33,7 +33,7 @@ fun OptionsScreen(
     onConfirm: (CompressionOptions) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var quality by rememberSaveable { mutableFloatStateOf(80f) }
+    var quality by rememberSaveable { mutableFloatStateOf(85f) }
     var preserveExif by rememberSaveable { mutableStateOf(true) }
     var convertPng by rememberSaveable { mutableStateOf(false) }
     var encoder by rememberSaveable { mutableStateOf(Encoder.MOZJPEG) }
@@ -66,8 +66,8 @@ fun OptionsScreen(
         Slider(
             value = quality,
             onValueChange = { quality = it },
-            valueRange = 70f..95f,
-            steps = 24,
+            valueRange = 75f..95f,
+            steps = 3,
             modifier = Modifier.fillMaxWidth()
         )
 
