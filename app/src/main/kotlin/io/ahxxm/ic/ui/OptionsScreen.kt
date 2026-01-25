@@ -73,10 +73,10 @@ private sealed class SampleState {
 @Composable
 fun OptionsScreen(
     bucketId: Long,
-    folderName: String = "",
     onConfirm: (CompressionOptions) -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    folderName: String = "",
 ) {
     val context = LocalContext.current
     var qualityLevel by rememberSaveable { mutableStateOf(QualityLevel.GOOD) }

@@ -22,7 +22,7 @@ class ImageRepository(private val contentResolver: ContentResolver) {
             projection,
             null,
             null,
-            "${MediaStore.Images.Media.BUCKET_DISPLAY_NAME} ASC"
+            null
         )?.use { cursor ->
             val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
             val bucketNameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
@@ -67,7 +67,7 @@ class ImageRepository(private val contentResolver: ContentResolver) {
             projection,
             selection,
             selectionArgs,
-            "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
+            null
         )?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
@@ -75,6 +75,8 @@ class ImageRepository(private val contentResolver: ContentResolver) {
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
 
             while (cursor.moveToNext()) {
+                val mimeType = cursor.getString(mimeCol) ?: continue
+                val name = cursor.getString(nameCol) ?: continue
                 val id = cursor.getLong(idCol)
                 val uri = ContentUris.withAppendedId(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -83,9 +85,9 @@ class ImageRepository(private val contentResolver: ContentResolver) {
                 images.add(
                     ImageItem(
                         uri = uri,
-                        name = cursor.getString(nameCol) ?: "unknown",
+                        name = name,
                         sizeBytes = cursor.getLong(sizeCol),
-                        mimeType = cursor.getString(mimeCol) ?: "image/jpeg"
+                        mimeType = mimeType
                     )
                 )
             }

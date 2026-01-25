@@ -30,6 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.ahxxm.ic.domain.ImageCompressionPreview
+import io.ahxxm.ic.domain.formatBytes
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -57,12 +58,12 @@ fun ComparisonScreen(
             Tab(
                 selected = pagerState.currentPage == 0,
                 onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                text = { Text("Original (${preview.originalSize / 1024}KB)") }
+                text = { Text("Original (${formatBytes(preview.originalSize)})") }
             )
             Tab(
                 selected = pagerState.currentPage == 1,
                 onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                text = { Text("Compressed (${preview.compressedSize / 1024}KB)") }
+                text = { Text("Compressed (${formatBytes(preview.compressedSize)})") }
             )
         }
 
@@ -90,7 +91,6 @@ fun ComparisonScreen(
 
 @Composable
 private fun SavingsSummary(preview: ImageCompressionPreview) {
-    val savingsKb = preview.savingsBytes / 1024
     val savingsPct = (preview.savingsPercent * 100).toInt()
 
     Row(
@@ -101,7 +101,7 @@ private fun SavingsSummary(preview: ImageCompressionPreview) {
     ) {
         Text("Savings:", style = MaterialTheme.typography.titleMedium)
         Text(
-            text = "${savingsKb}KB ($savingsPct%)",
+            text = "${formatBytes(preview.savingsBytes)} ($savingsPct%)",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
