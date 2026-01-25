@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.ahxxm.ic.domain.formatBytes
 
 @Composable
 fun DoneScreen(
@@ -21,13 +22,6 @@ fun DoneScreen(
     onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val savedMb = savedBytes / (1024 * 1024)
-    val savedKb = (savedBytes % (1024 * 1024)) / 1024
-    val savedDisplay = if (savedMb > 0) {
-        "${savedMb}.${savedKb / 100} MB"
-    } else {
-        "${savedBytes / 1024} KB"
-    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -42,7 +36,7 @@ fun DoneScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Saved $savedDisplay",
+            text = "Saved ${formatBytes(savedBytes)}",
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary
         )

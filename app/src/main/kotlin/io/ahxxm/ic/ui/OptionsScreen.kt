@@ -48,6 +48,7 @@ import io.ahxxm.ic.domain.Encoder
 import io.ahxxm.ic.domain.ImageCompressor
 import io.ahxxm.ic.domain.ImageItem
 import io.ahxxm.ic.domain.ImageRepository
+import io.ahxxm.ic.domain.formatBytes
 import kotlinx.coroutines.delay
 import java.io.File
 private enum class QualityLevel(val label: String) {
@@ -316,7 +317,7 @@ private fun SamplePreview(image: ImageItem, result: CompressionResult) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "${formatSize(result.originalSize)} → ${formatSize(result.compressedSize)}",
+                text = "${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)}",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -327,10 +328,4 @@ private fun SamplePreview(image: ImageItem, result: CompressionResult) {
             )
         }
     }
-}
-
-private fun formatSize(bytes: Long): String {
-    val kb = bytes / 1024
-    val mb = bytes / (1024 * 1024)
-    return if (mb > 0) "${mb}MB" else "${kb}KB"
 }

@@ -52,6 +52,7 @@ import io.ahxxm.ic.CompressionService
 import io.ahxxm.ic.domain.CompressionOptions
 import io.ahxxm.ic.domain.ImageCompressionPreview
 import io.ahxxm.ic.domain.ImageRepository
+import io.ahxxm.ic.domain.formatBytes
 
 sealed class SavingsPreviewState {
     data class Compressing(val current: Int, val total: Int) : SavingsPreviewState()
@@ -223,12 +224,8 @@ private fun ReadyContent(
         .sumOf { it.savingsBytes }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        val savingsMb = totalSavings / (1024 * 1024)
-        val savingsKb = (totalSavings % (1024 * 1024)) / 1024
-        val savingsDisplay = if (savingsMb > 0) "${savingsMb}.${savingsKb / 100}MB" else "${totalSavings / 1024}KB"
-
         Text(
-            text = "$selectedCount of ${previews.size} selected | $savingsDisplay savings",
+            text = "$selectedCount of ${previews.size} selected | ${formatBytes(totalSavings)} savings",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
