@@ -23,9 +23,11 @@ Native Android app for JPEG compression (jpegli, mozjpeg).
 
 ## APK Distribution
 
-Upload signed APK to catbox.moe (no expiration):
+Upload signed APK to tmpfiles.org:
 ```bash
-curl -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@app/build/outputs/apk/release/app-release.apk" https://litterbox.catbox.moe/resources/internals/api.php
+curl -s -F "file=@app/build/outputs/apk/release/app-release.apk" https://tmpfiles.org/api/v1/upload
+# returns JSON: {"status":"success","data":{"url":"..."}}
+# direct download: replace tmpfiles.org with tmpfiles.org/dl
 # our network is unstable, after upload, download and compare MD5 hash
 ```
 
