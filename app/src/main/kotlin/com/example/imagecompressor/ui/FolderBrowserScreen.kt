@@ -88,10 +88,18 @@ fun FolderBrowserScreen(
                 )
             }
             else -> {
-                FolderList(
-                    folders = folders,
-                    onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
-                )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = "Select folder",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    HorizontalDivider()
+                    FolderList(
+                        folders = folders,
+                        onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
+                    )
+                }
             }
         }
     }

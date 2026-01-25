@@ -151,7 +151,7 @@ fun ProgressScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(0.8f))
             }
             ProgressState.Compressing -> {
-                Text("Compressing images...", style = MaterialTheme.typography.titleMedium)
+                Text("Replacing originals...", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(0.8f))
                 Spacer(modifier = Modifier.height(8.dp))

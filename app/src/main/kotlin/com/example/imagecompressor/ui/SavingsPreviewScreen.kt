@@ -14,15 +14,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,6 +55,7 @@ sealed class SavingsPreviewState {
     data class Error(val message: String) : SavingsPreviewState()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavingsPreviewScreen(
     bucketId: Long,
@@ -58,16 +68,35 @@ fun SavingsPreviewScreen(
     val context = LocalContext.current
     var state by remember { mutableStateOf<SavingsPreviewState>(SavingsPreviewState.Compressing(0, 0)) }
     var selections by remember { mutableStateOf<List<Boolean>>(emptyList()) }
+    var confirmedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>?>(null) }
+
+    // Cleanup temp files when leaving screen (unless proceeding to compression)
+    DisposableEffect(Unit) {
+        onDispose {
+            if (confirmedPreviews == null) {
+                val currentState = state
+                if (currentState is SavingsPreviewState.Ready) {
+                    currentState.previews.forEach { it.tempFile?.delete() }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(bucketId, options) {
         val repository = ImageRepository(context.contentResolver)
         val compressor = ImageCompressor(context)
 
-        val images = repository.getImagesInFolder(bucketId)
-            .filter { it.isJpeg || (it.isPng && options.convertPng) }
+        val allImages = repository.getImagesInFolder(bucketId)
+        val images = allImages.filter { it.isJpeg || (it.isPng && options.convertPng) }
 
         if (images.isEmpty()) {
-            state = SavingsPreviewState.Error("No processable images")
+            val hasPngs = allImages.any { it.isPng }
+            val errorMsg = if (hasPngs && !options.convertPng) {
+                "No JPEG images found.\nEnable 'Convert PNG to JPEG' in options to include ${allImages.count { it.isPng }} PNG files."
+            } else {
+                "No processable images in this folder."
+            }
+            state = SavingsPreviewState.Error(errorMsg)
             return@LaunchedEffect
         }
 
@@ -96,23 +125,44 @@ fun SavingsPreviewScreen(
         state = SavingsPreviewState.Ready(sorted)
     }
 
-    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        when (val s = state) {
-            is SavingsPreviewState.Compressing -> CompressingContent(s.current, s.total)
-            is SavingsPreviewState.Ready -> ReadyContent(
-                previews = s.previews,
-                selections = selections,
-                onSelectionChange = { index, selected ->
-                    selections = selections.toMutableList().apply { set(index, selected) }
-                },
-                onImageClick = { index -> onImageClick(s.previews[index]) },
-                onConfirm = {
-                    val selected = s.previews.filterIndexed { i, _ -> selections[i] }
-                    onConfirm(selected)
-                },
-                onBack = onBack
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Review Savings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
-            is SavingsPreviewState.Error -> ErrorContent(s.message, onBack)
+        },
+        modifier = modifier
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
+            when (val s = state) {
+                is SavingsPreviewState.Compressing -> CompressingContent(s.current, s.total)
+                is SavingsPreviewState.Ready -> ReadyContent(
+                    previews = s.previews,
+                    selections = selections,
+                    onSelectionChange = { index, selected ->
+                        selections = selections.toMutableList().apply { set(index, selected) }
+                    },
+                    onSelectAll = { selections = List(s.previews.size) { true } },
+                    onDeselectAll = { selections = List(s.previews.size) { false } },
+                    onSmartSelect = {
+                        selections = s.previews.map { preview ->
+                            !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
+                        }
+                    },
+                    onImageClick = { index -> onImageClick(s.previews[index]) },
+                    onConfirm = {
+                        val selected = s.previews.filterIndexed { i, _ -> selections[i] }
+                        confirmedPreviews = selected
+                        onConfirm(selected)
+                    }
+                )
+                is SavingsPreviewState.Error -> ErrorContent(s.message, onBack)
+            }
         }
     }
 }
@@ -124,7 +174,7 @@ private fun CompressingContent(current: Int, total: Int) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Analyzing images...", style = MaterialTheme.typography.titleMedium)
+        Text("Compressing...", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(16.dp))
         LinearProgressIndicator(
             progress = { if (total > 0) current.toFloat() / total else 0f },
@@ -140,29 +190,36 @@ private fun ReadyContent(
     previews: List<ImageCompressionPreview>,
     selections: List<Boolean>,
     onSelectionChange: (Int, Boolean) -> Unit,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit,
+    onSmartSelect: () -> Unit,
     onImageClick: (Int) -> Unit,
-    onConfirm: () -> Unit,
-    onBack: () -> Unit
+    onConfirm: () -> Unit
 ) {
     val selectedCount = selections.count { it }
     val totalSavings = previews.filterIndexed { i, _ -> selections[i] }
         .sumOf { it.savingsBytes }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("Savings Preview", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-
         val savingsMb = totalSavings / (1024 * 1024)
         val savingsKb = (totalSavings % (1024 * 1024)) / 1024
         val savingsDisplay = if (savingsMb > 0) "${savingsMb}.${savingsKb / 100}MB" else "${totalSavings / 1024}KB"
 
         Text(
-            text = "$selectedCount selected | $savingsDisplay savings",
+            text = "$selectedCount of ${previews.size} selected | $savingsDisplay savings",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Selection buttons
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TextButton(onClick = onSelectAll) { Text("All") }
+            TextButton(onClick = onDeselectAll) { Text("None") }
+            TextButton(onClick = onSmartSelect) { Text("Smart") }
+        }
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -181,22 +238,23 @@ private fun ReadyContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Text(
+            text = "Originals will be replaced",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onConfirm,
+            enabled = selectedCount > 0,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) {
-                Text("Back")
-            }
-            Button(
-                onClick = onConfirm,
-                enabled = selectedCount > 0,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Confirm")
-            }
+            Text("Apply to $selectedCount Images")
         }
     }
 }

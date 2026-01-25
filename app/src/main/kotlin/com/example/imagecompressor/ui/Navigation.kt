@@ -27,9 +27,6 @@ sealed class Screen(val route: String) {
         fun createRoute(bucketId: Long, folderName: String): String =
             "options/$bucketId/${URLEncoder.encode(folderName, "UTF-8")}"
     }
-    data object Preview : Screen("preview/{${NavArgs.BUCKET_ID}}") {
-        fun createRoute(bucketId: Long): String = "preview/$bucketId"
-    }
     data object SavingsPreview : Screen("savings/{${NavArgs.BUCKET_ID}}") {
         fun createRoute(bucketId: Long): String = "savings/$bucketId"
     }
@@ -73,25 +70,12 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             } ?: ""
 
             OptionsScreen(
+                bucketId = bucketId,
                 folderName = folderName,
                 onConfirm = { options ->
                     currentOptions = options
-                    navController.navigate(Screen.Preview.createRoute(bucketId))
-                }
-            )
-        }
-
-        composable(
-            route = Screen.Preview.route,
-            arguments = listOf(
-                navArgument(NavArgs.BUCKET_ID) { type = NavType.LongType }
-            )
-        ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.getLong(NavArgs.BUCKET_ID) ?: 0L
-            PreviewScreen(
-                bucketId = bucketId,
-                options = currentOptions,
-                onProceed = { navController.navigate(Screen.SavingsPreview.createRoute(bucketId)) },
+                    navController.navigate(Screen.SavingsPreview.createRoute(bucketId))
+                },
                 onBack = { navController.popBackStack() }
             )
         }

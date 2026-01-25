@@ -42,6 +42,7 @@ class ImageCompressor(private val context: Context) {
                     JpegliCoder.compress(
                         bitmap = bitmap,
                         quality = options.quality,
+                        progressive = true,
                         outputStream = out
                     )
                     out.toByteArray()
@@ -89,25 +90,17 @@ class ImageCompressor(private val context: Context) {
     }
 
     companion object {
-        private val EXIF_TAGS = listOf(
-            ExifInterface.TAG_DATETIME,
-            ExifInterface.TAG_DATETIME_ORIGINAL,
-            ExifInterface.TAG_DATETIME_DIGITIZED,
-            ExifInterface.TAG_MAKE,
-            ExifInterface.TAG_MODEL,
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.TAG_GPS_LATITUDE,
-            ExifInterface.TAG_GPS_LATITUDE_REF,
-            ExifInterface.TAG_GPS_LONGITUDE,
-            ExifInterface.TAG_GPS_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_ALTITUDE,
-            ExifInterface.TAG_GPS_ALTITUDE_REF,
-            ExifInterface.TAG_EXPOSURE_TIME,
-            ExifInterface.TAG_F_NUMBER,
-            ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
-            ExifInterface.TAG_FOCAL_LENGTH,
-            ExifInterface.TAG_WHITE_BALANCE,
-            ExifInterface.TAG_FLASH
-        )
+        // Excluded: thumbnail (stale after recompression), maker notes (proprietary blobs)
+        private val EXCLUDED_PREFIXES = listOf("TAG_THUMBNAIL_", "TAG_MAKER_NOTE")
+
+        private val EXIF_TAGS: List<String> by lazy {
+            ExifInterface::class.java.fields
+                .filter { field ->
+                    field.name.startsWith("TAG_") &&
+                    field.type == String::class.java &&
+                    EXCLUDED_PREFIXES.none { prefix -> field.name.startsWith(prefix) }
+                }
+                .mapNotNull { runCatching { it.get(null) as? String }.getOrNull() }
+        }
     }
 }
