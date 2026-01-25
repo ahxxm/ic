@@ -67,27 +67,25 @@ fun SavingsPreviewScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var selections by remember { mutableStateOf<List<Boolean>>(emptyList()) }
     var confirmedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val progress by CompressionService.compressionProgress.collectAsStateWithLifecycle()
     val results by CompressionService.compressionResults.collectAsStateWithLifecycle()
 
+    // Selections computed synchronously when results changes, mutable for user toggles
+    var selections by remember(results) {
+        mutableStateOf(
+            results?.map { !ImageCompressionPreview.shouldAutoDeselect(it.savingsPercent, it.savingsBytes) }
+                ?: emptyList()
+        )
+    }
+
     val state: SavingsPreviewState = when {
         errorMessage != null -> SavingsPreviewState.Error(errorMessage!!)
         results != null -> SavingsPreviewState.Ready(results!!)
         progress != null -> SavingsPreviewState.Compressing(progress!!.first, progress!!.second)
         else -> SavingsPreviewState.Compressing(0, 0)
-    }
-
-    // Update selections when results arrive
-    LaunchedEffect(results) {
-        results?.let { list ->
-            selections = list.map { preview ->
-                !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
-            }
-        }
     }
 
     // Cleanup temp files when leaving screen (unless proceeding to compression)
