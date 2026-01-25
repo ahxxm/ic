@@ -14,14 +14,19 @@ class ImageRepository(private val contentResolver: ContentResolver) {
         val projection = arrayOf(
             MediaStore.Images.Media.BUCKET_ID,
             MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
-            MediaStore.Images.Media.SIZE
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.MIME_TYPE
         )
+
+        // Only include JPEG/PNG images
+        val selection = "${MediaStore.Images.Media.MIME_TYPE} IN (?, ?)"
+        val selectionArgs = arrayOf("image/jpeg", "image/png")
 
         contentResolver.query(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             projection,
-            null,
-            null,
+            selection,
+            selectionArgs,
             null
         )?.use { cursor ->
             val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
