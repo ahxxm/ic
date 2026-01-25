@@ -201,7 +201,7 @@ private fun FolderRow(
             )
         }
         Text(
-            text = formatBytes(folder.totalSizeBytes),
+            text = formatBytes(folder.totalSizeBytes, false),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

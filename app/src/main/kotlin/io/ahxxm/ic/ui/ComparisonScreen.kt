@@ -58,12 +58,12 @@ fun ComparisonScreen(
             Tab(
                 selected = pagerState.currentPage == 0,
                 onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                text = { Text("Original (${formatBytes(preview.originalSize)})") }
+                text = { Text("Original (${formatBytes(preview.originalSize, false)})") }
             )
             Tab(
                 selected = pagerState.currentPage == 1,
                 onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                text = { Text("Compressed (${formatBytes(preview.compressedSize)})") }
+                text = { Text("Compressed (${formatBytes(preview.compressedSize, false)})") }
             )
         }
 
@@ -101,7 +101,7 @@ private fun SavingsSummary(preview: ImageCompressionPreview) {
     ) {
         Text("Savings:", style = MaterialTheme.typography.titleMedium)
         Text(
-            text = "${formatBytes(preview.savingsBytes)} ($savingsPct%)",
+            text = "${formatBytes(preview.savingsBytes, false)} ($savingsPct%)",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )

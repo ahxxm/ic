@@ -186,14 +186,15 @@ private fun ReadyContent(
     onConfirm: () -> Unit
 ) {
     val selectedCount = selections.count { it }
-    val totalSavings = previews.filterIndexed { i, _ -> selections[i] }
-        .sumOf { it.savingsBytes }
+    val sizeDelta = previews.filterIndexed { i, _ -> selections[i] }
+        .sumOf { it.compressedSize - it.originalSize }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "$selectedCount of ${previews.size} selected | ${formatBytes(totalSavings)} savings",
+            text = "$selectedCount of ${previews.size} selected | ${formatBytes(sizeDelta, true)}",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
+            color = if (sizeDelta <= 0) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.error
         )
 
         // Selection buttons
@@ -251,8 +252,8 @@ private fun PreviewRow(
     onSelectedChange: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
-    val savingsKb = preview.savingsBytes / 1024
-    val savingsPct = (preview.savingsPercent * 100).toInt()
+    val sizeDelta = preview.compressedSize - preview.originalSize
+    val changePct = if (preview.originalSize > 0) (sizeDelta * 100 / preview.originalSize).toInt() else 0
     val lowSavings = ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
 
     Row(
@@ -289,7 +290,7 @@ private fun PreviewRow(
         }
 
         Text(
-            text = "-${savingsKb}KB ($savingsPct%)",
+            text = "${formatBytes(sizeDelta, true)} (%+d%%)".format(changePct),
             style = MaterialTheme.typography.bodyMedium,
             color = if (lowSavings) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.primary

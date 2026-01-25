@@ -21,12 +21,11 @@ Native Android app for JPEG compression (jpegli, mozjpeg).
 ./gradlew assembleRelease  # signed APK
 ```
 
-## APK Distribution
+## APK Testing
 
-Upload signed APK to tmpfiles.org:
+Upload signed arm64 APK to tmpfiles.org using a shorter name:
 ```bash
-curl -s -F "file=@app/build/outputs/apk/release/app-release.apk" https://tmpfiles.org/api/v1/upload
-# returns JSON: {"status":"success","data":{"url":"..."}}
+curl -s -F "file=@app/build/outputs/apk/release/app.apk" https://tmpfiles.org/api/v1/upload
 # direct download: replace tmpfiles.org with tmpfiles.org/dl
 # our network is unstable, after upload, download and compare MD5 hash
 ```

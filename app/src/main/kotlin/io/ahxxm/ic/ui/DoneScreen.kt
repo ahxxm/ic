@@ -36,7 +36,7 @@ fun DoneScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Saved ${formatBytes(savedBytes)}",
+            text = "Saved ${formatBytes(savedBytes, false)}",
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary
         )

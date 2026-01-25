@@ -240,7 +240,7 @@ private fun SamplePreview(image: ImageItem, result: CompressionResult) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "${formatBytes(result.originalSize)} -> ${formatBytes(result.compressedSize)}",
+                text = "${formatBytes(result.originalSize, false)} -> ${formatBytes(result.compressedSize, false)}",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.width(12.dp))
