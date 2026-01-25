@@ -69,11 +69,13 @@ fun SavingsPreviewScreen(
     val context = LocalContext.current
     var selections by remember { mutableStateOf<List<Boolean>>(emptyList()) }
     var confirmedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val progress by CompressionService.compressionProgress.collectAsStateWithLifecycle()
     val results by CompressionService.compressionResults.collectAsStateWithLifecycle()
 
     val state: SavingsPreviewState = when {
+        errorMessage != null -> SavingsPreviewState.Error(errorMessage!!)
         results != null -> SavingsPreviewState.Ready(results!!)
         progress != null -> SavingsPreviewState.Compressing(progress!!.first, progress!!.second)
         else -> SavingsPreviewState.Compressing(0, 0)
@@ -105,16 +107,14 @@ fun SavingsPreviewScreen(
 
         if (images.isEmpty()) {
             val hasPngs = allImages.any { it.isPng }
-            val errorMsg = if (hasPngs && !options.convertPng) {
+            errorMessage = if (hasPngs && !options.convertPng) {
                 "No JPEG images found.\nEnable 'Convert PNG to JPEG' in options to include ${allImages.count { it.isPng }} PNG files."
             } else {
                 "No processable images in this folder."
             }
-            state = SavingsPreviewState.Error(errorMsg)
             return@LaunchedEffect
         }
 
-        state = SavingsPreviewState.Compressing(0, images.size)
         CompressionService.startCompression(context, images, options)
     }
 
