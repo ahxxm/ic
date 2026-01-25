@@ -1,12 +1,13 @@
-A minimalist Android app for JPEG compression using high-quality encoders.
+A minimalist and optinionated Android app for on-device JPEG/PNG compression.
 
 Features:
 - Browse and select image folders
-- Quality slider (70-95)
+- 3 built-in quality levels for MozJPEG and Jpegli
 - Preview estimated savings before compression
-- EXIF metadata preservation option
-- PNG to JPEG conversion option
-- Batch processing with progress notification
+
+Options:
+- EXIF metadata preservation
+- PNG to JPEG conversion
 
 Encoders:
 - mozjpeg: Mozilla's optimized JPEG encoder
