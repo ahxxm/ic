@@ -22,7 +22,7 @@
 ```
 
 **Concrete steps:**
-- [ ] Request permission based on API level:
+- [x] Request permission based on API level:
   ```kotlin
   val permission = if (Build.VERSION.SDK_INT >= 33) {
       Manifest.permission.READ_MEDIA_IMAGES
@@ -30,7 +30,7 @@
       Manifest.permission.READ_EXTERNAL_STORAGE
   }
   ```
-- [ ] Query folders via MediaStore bucket grouping:
+- [x] Query folders via MediaStore bucket grouping:
   ```kotlin
   val projection = arrayOf(
       MediaStore.Images.Media.BUCKET_ID,
@@ -45,7 +45,7 @@
       "${MediaStore.Images.Media.BUCKET_DISPLAY_NAME} ASC"
   )
   ```
-- [ ] Aggregate into folder summaries:
+- [x] Aggregate into folder summaries:
   ```kotlin
   data class FolderSummary(
       val bucketId: Long,
@@ -54,8 +54,8 @@
       val totalSizeBytes: Long
   )
   ```
-- [ ] Build folder browser UI showing "DCIM/Camera - 2,847 images, 4.2GB"
-- [ ] On folder select, query images in bucket:
+- [x] Build folder browser UI showing "DCIM/Camera - 2,847 images, 4.2GB"
+- [x] On folder select, query images in bucket:
   ```kotlin
   data class ImageItem(
       val uri: Uri,  // content://media/external/images/media/{id}
@@ -64,8 +64,8 @@
       val mimeType: String  // image/jpeg, image/png
   )
   ```
-- [ ] Filter by MIME type: `image/jpeg` processable, `image/png` processable if convert enabled
-- [ ] Display in UI: "47 JPEG, 12 PNG | 8 skipped"
+- [x] Filter by MIME type: `image/jpeg` processable, `image/png` processable if convert enabled (ImageItem.isProcessable)
+- [ ] Display in UI: "47 JPEG, 12 PNG | 8 skipped" (deferred to Phase 4 Preview screen)
 
 **Verification:** Grant permission, browse folders, see image counts, select folder for compression
 
@@ -74,11 +74,11 @@
 ## Phase 2: Options Screen
 
 **Concrete steps:**
-- [ ] Quality slider: `Slider(value = quality, valueRange = 70f..95f, steps = 24)`
-- [ ] EXIF preserve: `Checkbox(checked = preserveExif)` — default ON
-- [ ] PNG convert: `Checkbox(checked = convertPng)` — default OFF
-- [ ] Encoder toggle: disabled, shows "mozjpeg" (jpegli added Phase 7)
-- [ ] State holder:
+- [x] Quality slider: `Slider(value = quality, valueRange = 70f..95f, steps = 24)`
+- [x] EXIF preserve: `Checkbox(checked = preserveExif)` — default ON
+- [x] PNG convert: `Checkbox(checked = convertPng)` — default OFF
+- [x] Encoder toggle: disabled, shows "mozjpeg" (jpegli added Phase 7)
+- [x] State holder:
   ```kotlin
   data class CompressionOptions(
       val quality: Int = 80,
@@ -88,7 +88,7 @@
   )
   ```
 
-**Verification:** Options persist across configuration changes
+**Verification:** Options persist across configuration changes (via `rememberSaveable`)
 
 ---
 
@@ -283,7 +283,7 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ## Current Focus
 
-**Phase 1** - Storage & file handling.
+**Phase 3** - Compression stub (Bitmap.compress). Phase 1-2 complete.
 
 ## Risk Register
 

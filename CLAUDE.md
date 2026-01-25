@@ -20,6 +20,12 @@ Native Android app for JPEG compression (jpegli, mozjpeg).
 ./gradlew assembleDebug
 ```
 
+## Progress Tracking
+
+After completing phase work:
+1. Update `IMPL_PLAN.md` - mark completed items `[x]`, update "Current Focus" section
+2. Verify build passes before marking phase complete
+
 ## Reference
 
 This file follows [Writing a Good CLAUDE.md](https://www.humanlayer.dev/blog/writing-a-good-claude-md): minimal, pointers over copies, no style rules.
