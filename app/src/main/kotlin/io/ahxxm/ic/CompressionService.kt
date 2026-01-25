@@ -16,6 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CompressionService : Service() {
@@ -52,7 +55,7 @@ class CompressionService : Service() {
             val results = mutableListOf<ImageCompressionPreview>()
 
             images.forEachIndexed { index, image ->
-                compressionProgress = (index + 1) to images.size
+                _compressionProgress.value = (index + 1) to images.size
                 updateNotification("Compressing...", index + 1, images.size)
                 val result = compressor.compressImage(image, options)
                 if (result.success) {
@@ -68,12 +71,11 @@ class CompressionService : Service() {
                 }
             }
 
-            compressionResults = results.sortedByDescending { it.savingsBytes }
+            _compressionResults.value = results.sortedByDescending { it.savingsBytes }
             pendingImages = null
             pendingOptions = null
 
             stopForeground(STOP_FOREGROUND_REMOVE)
-            sendBroadcast(Intent(ACTION_COMPRESS_COMPLETE))
             stopSelf()
         }
     }
@@ -97,11 +99,10 @@ class CompressionService : Service() {
                 updateNotification("Saving...", index + 1, items.size)
             }
 
-            saveResult = SaveResult(successCount, totalSaved)
+            _saveResult.value = SaveResult(successCount, totalSaved)
             pendingSaveItems = null
 
             stopForeground(STOP_FOREGROUND_REMOVE)
-            sendBroadcast(Intent(ACTION_SAVE_COMPLETE))
             stopSelf()
         }
     }
@@ -159,22 +160,24 @@ class CompressionService : Service() {
         private const val MODE_COMPRESS = "compress"
         private const val MODE_SAVE = "save"
 
-        const val ACTION_COMPRESS_COMPLETE = "io.ahxxm.ic.COMPRESS_COMPLETE"
-        const val ACTION_SAVE_COMPLETE = "io.ahxxm.ic.SAVE_COMPLETE"
-
         var pendingImages: List<ImageItem>? = null
         var pendingOptions: CompressionOptions? = null
-        var compressionProgress: Pair<Int, Int>? = null  // (current, total)
-        var compressionResults: List<ImageCompressionPreview>? = null
-
         var pendingSaveItems: List<ImageCompressionPreview>? = null
-        var saveResult: SaveResult? = null
+
+        private val _compressionProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+        val compressionProgress: StateFlow<Pair<Int, Int>?> = _compressionProgress.asStateFlow()
+
+        private val _compressionResults = MutableStateFlow<List<ImageCompressionPreview>?>(null)
+        val compressionResults: StateFlow<List<ImageCompressionPreview>?> = _compressionResults.asStateFlow()
+
+        private val _saveResult = MutableStateFlow<SaveResult?>(null)
+        val saveResult: StateFlow<SaveResult?> = _saveResult.asStateFlow()
 
         fun startCompression(context: Context, images: List<ImageItem>, options: CompressionOptions) {
             pendingImages = images
             pendingOptions = options
-            compressionProgress = 0 to images.size
-            compressionResults = null
+            _compressionProgress.value = 0 to images.size
+            _compressionResults.value = null
             context.startForegroundService(
                 Intent(context, CompressionService::class.java).putExtra(EXTRA_MODE, MODE_COMPRESS)
             )
@@ -182,7 +185,7 @@ class CompressionService : Service() {
 
         fun startSave(context: Context, items: List<ImageCompressionPreview>) {
             pendingSaveItems = items
-            saveResult = null
+            _saveResult.value = null
             context.startForegroundService(
                 Intent(context, CompressionService::class.java).putExtra(EXTRA_MODE, MODE_SAVE)
             )

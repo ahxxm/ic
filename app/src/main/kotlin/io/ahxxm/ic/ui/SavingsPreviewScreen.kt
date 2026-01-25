@@ -1,9 +1,5 @@
 package io.ahxxm.ic.ui
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.ahxxm.ic.CompressionService
 import io.ahxxm.ic.domain.CompressionOptions
@@ -71,58 +67,32 @@ fun SavingsPreviewScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var state by remember { mutableStateOf<SavingsPreviewState>(SavingsPreviewState.Compressing(0, 0)) }
     var selections by remember { mutableStateOf<List<Boolean>>(emptyList()) }
     var confirmedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>?>(null) }
+
+    val progress by CompressionService.compressionProgress.collectAsStateWithLifecycle()
+    val results by CompressionService.compressionResults.collectAsStateWithLifecycle()
+
+    val state: SavingsPreviewState = when {
+        results != null -> SavingsPreviewState.Ready(results!!)
+        progress != null -> SavingsPreviewState.Compressing(progress!!.first, progress!!.second)
+        else -> SavingsPreviewState.Compressing(0, 0)
+    }
+
+    // Update selections when results arrive
+    LaunchedEffect(results) {
+        results?.let { list ->
+            selections = list.map { preview ->
+                !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
+            }
+        }
+    }
 
     // Cleanup temp files when leaving screen (unless proceeding to compression)
     DisposableEffect(Unit) {
         onDispose {
             if (confirmedPreviews == null) {
-                val currentState = state
-                if (currentState is SavingsPreviewState.Ready) {
-                    currentState.previews.forEach { it.tempFile?.delete() }
-                }
-            }
-        }
-    }
-
-    // Listen for compression completion
-    DisposableEffect(bucketId, options) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                val results = CompressionService.compressionResults ?: emptyList()
-                selections = results.map { preview ->
-                    !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
-                }
-                state = SavingsPreviewState.Ready(results)
-            }
-        }
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter(CompressionService.ACTION_COMPRESS_COMPLETE),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        onDispose { context.unregisterReceiver(receiver) }
-    }
-
-    // Poll progress and check for completion
-    LaunchedEffect(state) {
-        if (state is SavingsPreviewState.Compressing) {
-            while (state is SavingsPreviewState.Compressing) {
-                kotlinx.coroutines.delay(200)
-                val progress = CompressionService.compressionProgress
-                if (progress != null) {
-                    state = SavingsPreviewState.Compressing(progress.first, progress.second)
-                }
-                val results = CompressionService.compressionResults
-                if (results != null) {
-                    selections = results.map { preview ->
-                        !ImageCompressionPreview.shouldAutoDeselect(preview.savingsPercent, preview.savingsBytes)
-                    }
-                    state = SavingsPreviewState.Ready(results)
-                }
+                results?.forEach { it.tempFile?.delete() }
             }
         }
     }

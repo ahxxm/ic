@@ -1,10 +1,6 @@
 package io.ahxxm.ic.ui
 
 import android.Manifest
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.MediaStore
@@ -23,7 +19,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.ahxxm.ic.CompressionService
 import io.ahxxm.ic.domain.ImageCompressionPreview
 
@@ -74,31 +70,12 @@ fun ProgressScreen(
         }
     }
 
-    // Listen for service completion via broadcast
-    DisposableEffect(Unit) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                state = ProgressState.Complete
-            }
-        }
-        val filter = IntentFilter(CompressionService.ACTION_SAVE_COMPLETE)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
-        }
-        onDispose { context.unregisterReceiver(receiver) }
-    }
+    val saveResult by CompressionService.saveResult.collectAsStateWithLifecycle()
 
-    // Fallback polling in case broadcast is missed
-    LaunchedEffect(state) {
-        if (state == ProgressState.Compressing) {
-            while (state == ProgressState.Compressing) {
-                kotlinx.coroutines.delay(500)
-                if (CompressionService.saveResult != null) {
-                    state = ProgressState.Complete
-                }
-            }
+    // Transition to Complete when saveResult arrives
+    LaunchedEffect(saveResult) {
+        if (saveResult != null && state == ProgressState.Compressing) {
+            state = ProgressState.Complete
         }
     }
 
@@ -126,9 +103,8 @@ fun ProgressScreen(
                 writeRequestLauncher.launch(IntentSenderRequest.Builder(writeRequest).build())
             }
             ProgressState.Complete -> {
-                val result = CompressionService.saveResult
-                if (result != null) {
-                    onComplete(result.count, result.savedBytes)
+                if (saveResult != null) {
+                    onComplete(saveResult!!.count, saveResult!!.savedBytes)
                 } else {
                     onComplete(selectedPreviews.size, selectedPreviews.sumOf { it.savingsBytes })
                 }
