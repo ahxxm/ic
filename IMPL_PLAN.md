@@ -97,7 +97,7 @@
 Using Android's built-in encoder to validate full flow before NDK.
 
 **Concrete steps:**
-- [ ] Compression function:
+- [x] Compression function:
   ```kotlin
   suspend fun compressImage(
       image: ImageItem,  // contains Uri from MediaStore
@@ -120,7 +120,7 @@ Using Android's built-in encoder to validate full flow before NDK.
       )
   }
   ```
-- [ ] EXIF copy (when preserveExif=true):
+- [x] EXIF copy (when preserveExif=true):
   ```kotlin
   // Use androidx.exifinterface
   implementation("androidx.exifinterface:exifinterface:1.3.7")
@@ -129,7 +129,7 @@ Using Android's built-in encoder to validate full flow before NDK.
   val newExif = ExifInterface(tempFile)
   // Copy relevant tags
   ```
-- [ ] Wire random sample preview on options confirm
+- [x] Wire random sample preview on options confirm
 
 **Verification:** Select options → see one image compressed → shows original vs new size
 
@@ -138,8 +138,8 @@ Using Android's built-in encoder to validate full flow before NDK.
 ## Phase 4: Savings Preview Screen
 
 **Concrete steps:**
-- [ ] Batch compress all selected images to cache dir (suspend, show progress)
-- [ ] Results list:
+- [x] Batch compress all selected images to cache dir (suspend, show progress)
+- [x] Results list:
   ```kotlin
   data class ImageCompressionPreview(
       val image: ImageItem,  // contains Uri from MediaStore
@@ -150,14 +150,14 @@ Using Android's built-in encoder to validate full flow before NDK.
       val selected: Boolean  // mutable
   )
   ```
-- [ ] LazyColumn sorted by `savingsBytes` DESC
-- [ ] Auto-deselect logic:
+- [x] LazyColumn sorted by `savingsBytes` DESC
+- [x] Auto-deselect logic:
   ```kotlin
   val autoDeselect = savingsPercent < 0.10f && savingsBytes < 50_000
   ```
-- [ ] Total savings display (sum of selected items)
-- [ ] Tap row → navigate to before/after comparison screen
-- [ ] Comparison screen: two `AsyncImage` (Coil) side by side or swipeable
+- [x] Total savings display (sum of selected items)
+- [x] Tap row → navigate to before/after comparison screen
+- [x] Comparison screen: two `AsyncImage` (Coil) side by side or swipeable
 
 **Dependency:**
 ```kotlin
@@ -283,7 +283,7 @@ implementation("io.coil-kt:coil-compose:2.5.0")
 
 ## Current Focus
 
-**Phase 3** - Compression stub (Bitmap.compress). Phase 1-2 complete.
+**Phase 5** - Commit Flow. Phase 1-4 complete.
 
 ## Risk Register
 
