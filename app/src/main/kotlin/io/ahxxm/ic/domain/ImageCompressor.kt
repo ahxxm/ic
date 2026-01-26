@@ -3,6 +3,7 @@ package io.ahxxm.ic.domain
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ColorSpace
 import androidx.exifinterface.media.ExifInterface
 import com.awxkee.aire.Aire
 import io.github.awxkee.jpegli.coder.IccStrategy
@@ -28,7 +29,13 @@ class ImageCompressor(private val context: Context) {
                     error = "Cannot open image"
                 )
 
-            val bitmap = inputStream.use { BitmapFactory.decodeStream(it) }
+            // aire and jpegli-coder assume sRGB input
+            // https://github.com/awxkee/aire/blob/master/aire/src/main/cpp/base/JPEGEncoder.cpp#L114
+            // https://github.com/awxkee/jpegli-coder/blob/main/jpegli-coder/src/main/cpp/JPEGEncoder.cpp#L110
+            val decodeOptions = BitmapFactory.Options().apply {
+                inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
+            }
+            val bitmap = inputStream.use { BitmapFactory.decodeStream(it, null, decodeOptions) }
                 ?: return@withContext CompressionResult(
                     originalSize = image.sizeBytes,
                     compressedSize = 0,
