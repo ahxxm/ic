@@ -25,6 +25,7 @@ Native Android app for JPEG compression (jpegli, mozjpeg).
 
 Upload signed arm64 APK to tmpfiles.org using a shorter name:
 ```bash
+# mv variants to `app.apk` for a shorter url
 curl -s -F "file=@app/build/outputs/apk/release/app.apk" https://tmpfiles.org/api/v1/upload
 # direct download: replace tmpfiles.org with tmpfiles.org/dl
 # our network is unstable, after upload, download and compare MD5 hash
