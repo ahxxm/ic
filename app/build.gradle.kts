@@ -11,19 +11,21 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../release.keystore")
-            storePassword = "yourpassword"
+            storeFile = file("../${System.getenv("KEYSTORE_FILE") ?: "release.keystore"}")
+            storePassword = System.getenv("STORE_PASSWORD") ?: "yourpassword"
             keyAlias = "release"
-            keyPassword = "yourpassword"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "yourpassword"
         }
     }
+
+    val baseVersion = 1  // Must match git tag: v$baseVersion
 
     defaultConfig {
         applicationId = "io.ahxxm.ic"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = baseVersion
+        versionName = baseVersion.toString()
     }
 
     splits {

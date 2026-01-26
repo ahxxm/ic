@@ -30,6 +30,11 @@ curl -s -F "file=@app/build/outputs/apk/release/app.apk" https://tmpfiles.org/ap
 # our network is unstable, after upload, download and compare MD5 hash
 ```
 
+## Release
+
+Version uses single integer: `baseVersion` in app/build.gradle.kts must equal git tag number.
+- baseVersion = 2 → tag v2 → versionName "2" → versionCodes 20-24
+
 ## Progress Tracking
 
 After completing phase work:
