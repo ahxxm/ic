@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.jpegli.coder)
 
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 
     debugImplementation(libs.compose.ui.tooling)
 }

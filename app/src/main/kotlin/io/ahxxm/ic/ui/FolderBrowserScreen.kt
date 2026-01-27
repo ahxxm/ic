@@ -1,7 +1,7 @@
 package io.ahxxm.ic.ui
 
 import android.Manifest
-import android.content.Context
+import android.content.ContentResolver
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,31 +16,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import io.ahxxm.ic.domain.FolderSummary
 import io.ahxxm.ic.domain.ImageRepository
 import io.ahxxm.ic.domain.formatBytes
+import kotlinx.coroutines.launch
 
 private fun requiredPermissions(): List<String> = buildList {
     add(
@@ -52,13 +52,20 @@ private fun requiredPermissions(): List<String> = buildList {
     }
 }
 
-private fun hasMediaPermission(context: Context): Boolean {
+private fun hasMediaPermission(context: android.content.Context): Boolean {
     val mediaPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
-        else Manifest.permission.READ_EXTERNAL_STORAGE
+    else Manifest.permission.READ_EXTERNAL_STORAGE
     return ContextCompat.checkSelfPermission(context, mediaPermission) == PermissionChecker.PERMISSION_GRANTED
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private class ContentResolverFolderRepository(
+    private val contentResolver: ContentResolver
+) : FolderRepository {
+    override suspend fun getFolders(): List<FolderSummary> {
+        return ImageRepository(contentResolver).getFolders()
+    }
+}
+
 @Composable
 fun FolderBrowserScreen(
     onFolderSelected: (bucketId: Long, folderName: String) -> Unit,
@@ -66,30 +73,37 @@ fun FolderBrowserScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     var permissionGranted by remember { mutableStateOf(hasMediaPermission(context)) }
-    var folders by remember { mutableStateOf<List<FolderSummary>>(emptyList()) }
-    var loading by remember { mutableStateOf(false) }
-    var refreshing by remember { mutableStateOf(false) }
+
+    val viewModel = remember {
+        FolderBrowserViewModel(ContentResolverFolderRepository(context.contentResolver))
+    }
+    val state by viewModel.state.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         val mediaPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
-            else Manifest.permission.READ_EXTERNAL_STORAGE
+        else Manifest.permission.READ_EXTERNAL_STORAGE
         permissionGranted = results[mediaPermission] == true
+        viewModel.onPermissionChanged(permissionGranted)
     }
 
-    suspend fun loadFolders() {
-        val repo = ImageRepository(context.contentResolver)
-        folders = withContext(Dispatchers.IO) { repo.getFolders() }
+    DisposableEffect(Unit) {
+        viewModel.onPermissionChanged(permissionGranted)
+        onDispose { }
     }
 
-    LaunchedEffect(permissionGranted) {
-        if (permissionGranted && folders.isEmpty()) {
-            loading = true
-            loadFolders()
-            loading = false
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && permissionGranted) {
+                scope.launch { viewModel.loadFolders() }
+            }
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -99,40 +113,28 @@ fun FolderBrowserScreen(
                     onRequestPermission = { permissionLauncher.launch(requiredPermissions().toTypedArray()) }
                 )
             }
-            loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
             else -> {
-                PullToRefreshBox(
-                    isRefreshing = refreshing,
-                    onRefresh = {
-                        scope.launch {
-                            refreshing = true
-                            loadFolders()
-                            refreshing = false
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    if (folders.isEmpty()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "No image folders found",
-                            modifier = Modifier.align(Alignment.Center)
+                            text = "Select folder to compress",
+                            style = MaterialTheme.typography.titleMedium
                         )
-                    } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                text = "Select folder to compress",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                            HorizontalDivider()
-                            FolderList(
-                                folders = folders,
-                                onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
-                            )
+                        TextButton(onClick = { scope.launch { viewModel.loadFolders() } }) {
+                            Text("Refresh")
                         }
                     }
+                    HorizontalDivider()
+                    FolderList(
+                        folders = state.folders,
+                        onFolderClick = { folder -> onFolderSelected(folder.bucketId, folder.name) }
+                    )
                 }
             }
         }
@@ -207,4 +209,3 @@ private fun FolderRow(
         )
     }
 }
-
