@@ -18,7 +18,7 @@ android {
         }
     }
 
-    val baseVersion = 1  // Must match git tag: v$baseVersion
+    val baseVersion = 2  // Must match git tag: v$baseVersion
 
     defaultConfig {
         applicationId = "io.ahxxm.ic"
