@@ -18,7 +18,7 @@ android {
         }
     }
 
-    val baseVersion = 2  // Must match git tag: v$baseVersion
+    val baseVersion = 3  // Must match git tag: v$baseVersion
 
     defaultConfig {
         applicationId = "io.ahxxm.ic"
@@ -26,6 +26,7 @@ android {
         targetSdk = 36
         versionCode = baseVersion
         versionName = baseVersion.toString()
+        vectorDrawables.generatedDensities?.clear()
     }
 
     splits {
@@ -42,11 +43,17 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
+            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     compileOptions {

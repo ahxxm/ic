@@ -7,3 +7,7 @@
 
 # Remove kotlin metadata not needed at runtime
 -dontwarn kotlin.reflect.jvm.internal.**
+
+# R8 ServiceLoader non-determinism fix for reproducible builds
+-keep class kotlinx.coroutines.CoroutineExceptionHandler
+-keep class kotlinx.coroutines.internal.MainDispatcherFactory
