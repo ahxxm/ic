@@ -18,14 +18,14 @@ android {
         }
     }
 
-    val baseVersion = 3  // Must match git tag: v$baseVersion
+    val baseVersion = 4  // Must match git tag: v$baseVersion.0
 
     defaultConfig {
         applicationId = "io.ahxxm.ic"
         minSdk = 30
         targetSdk = 36
         versionCode = baseVersion
-        versionName = baseVersion.toString()
+        versionName = "$baseVersion.0"
         vectorDrawables.generatedDensities?.clear()
     }
 

@@ -34,7 +34,7 @@ curl -s -F "file=@app/build/outputs/apk/release/app.apk" https://tmpfiles.org/ap
 ## Release
 
 Version uses single integer: `baseVersion` in app/build.gradle.kts must equal git tag number.
-- baseVersion = 2 → tag v2 → versionName "2" → versionCodes 20-24
+- baseVersion = 4 → tag v4.0 → versionName "4.0" → versionCodes 40-44
 
 ## Progress Tracking
 
