@@ -12,3 +12,14 @@ local.properties
 
 # OS
 .DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcscmblueprint
+*.xccheckout
+*.xcsettings
+
+# Local signing identity (see Local.xcconfig.example)
+Local.xcconfig
