@@ -34,3 +34,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/*.apk
+
+  ios:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - name: Build for simulator
+        run: |
+          xcodebuild build \
+            -project ios/ic/ic.xcodeproj \
+            -scheme ic \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
