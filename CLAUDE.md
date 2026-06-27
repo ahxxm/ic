@@ -1,16 +1,10 @@
 # Image Compressor
 
-Native Android app for JPEG compression (jpegli, mozjpeg).
-
-## Project Context
-
-- `PROJECT.md` - architecture, decisions, resolved items
-- `IMPL_PLAN.md` - phased implementation plan, current focus
+Native Android app for JPEG compression (jpegli, mozjpeg). iOS port (working, local dev) in `ios/`.
 
 ## Stack
 
 - Kotlin + Jetpack Compose
-- NDK/CMake for native encoders (deferred - using Bitmap.compress initially)
 - Target: Android 11+ (API 30)
 - Distribution: F-Droid only
 
@@ -33,14 +27,8 @@ curl -s -F "file=@app/build/outputs/apk/release/app.apk" https://tmpfiles.org/ap
 
 ## Release
 
-Version uses single integer: `baseVersion` in app/build.gradle.kts must equal git tag number.
-- baseVersion = 4 → tag v4.0 → versionName "4.0" → versionCodes 40-44
-
-## Progress Tracking
-
-After completing phase work:
-1. Update `IMPL_PLAN.md` - mark completed items `[x]`, update "Current Focus" section
-2. Verify build passes before marking phase complete
+To release: bump `baseVersion` in app/build.gradle.kts, tag the commit `v{baseVersion}.0`. baseVersion must equal git tag number.
+- baseVersion = 5, tag v5.0 → versionName "5.0" → versionCodes 50-54
 
 ## Reference
 
