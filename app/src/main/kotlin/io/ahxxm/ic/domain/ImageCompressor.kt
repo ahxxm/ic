@@ -23,7 +23,7 @@ class ImageCompressor(private val context: Context) {
         options: CompressionOptions
     ): CompressionResult = withContext(Dispatchers.IO) {
         try {
-            val inputStream = openUnredactedStream(image.uri)
+            val inputStream = openOriginalStream(image.uri)
                 ?: return@withContext CompressionResult(
                     originalSize = image.sizeBytes,
                     compressedSize = 0,
@@ -87,12 +87,12 @@ class ImageCompressor(private val context: Context) {
 
     // Redaction: https://developer.android.com/training/data-storage/shared/media
     // setRequireOriginal: https://developer.android.com/reference/android/provider/MediaStore#setRequireOriginal(android.net.Uri)
-    private fun openUnredactedStream(uri: Uri): InputStream? =
+    private fun openOriginalStream(uri: Uri): InputStream? =
         context.contentResolver.openInputStream(MediaStore.setRequireOriginal(uri))
 
     private fun copyExifData(image: ImageItem, destFile: File) {
         try {
-            val inputStream = openUnredactedStream(image.uri) ?: return
+            val inputStream = openOriginalStream(image.uri) ?: return
             val sourceExif = inputStream.use { ExifInterface(it) }
             val destExif = ExifInterface(destFile)
 
