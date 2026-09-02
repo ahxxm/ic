@@ -47,6 +47,7 @@ private fun requiredPermissions(): List<String> = buildList {
         if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
         else Manifest.permission.READ_EXTERNAL_STORAGE
     )
+    add(Manifest.permission.ACCESS_MEDIA_LOCATION)
     if (Build.VERSION.SDK_INT >= 33) {
         add(Manifest.permission.POST_NOTIFICATIONS)
     }
