@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -85,6 +87,7 @@ fun OptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             SampleStateContent(sampleState)
@@ -123,9 +126,10 @@ fun OptionsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Checkboxes
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
@@ -143,7 +147,7 @@ fun OptionsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Originals won't be modified yet",
@@ -166,14 +170,16 @@ fun OptionsScreen(
 
 @Composable
 private fun LabeledChipRow(label: String, chips: @Composable () -> Unit) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.weight(1f))
-        chips()
+        Spacer(modifier = Modifier.height(4.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            chips()
+        }
     }
 }
 

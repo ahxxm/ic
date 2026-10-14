@@ -13,9 +13,9 @@ import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -40,8 +40,9 @@ import org.robolectric.annotation.GraphicsMode
  * Two settings break these screens and are exercised separately: font scale enlarges text without
  * shrinking the window, display size shrinks the window without enlarging text.
  *
- * Every case asserts the same three properties: nothing escapes the viewport, single-line labels
- * stay on one line, and no two text nodes overlap.
+ * Every case asserts the same properties: text stays inside the viewport horizontally, labels stay
+ * on one line, no two text nodes overlap, chips sit in one column next to their label, and every
+ * interactive label is reachable, scrolling if the screen scrolls.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -96,10 +97,7 @@ class LargeFontLayoutTest(
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text))
             .fetchSemanticsNodes()
             .map { node ->
-                val text = node.config
-                    .getOrNull(SemanticsProperties.Text)
-                    .orEmpty()
-                    .joinToString("") { it.text }
+                val text = node.config[SemanticsProperties.Text].joinToString("") { it.text }
                 TextBounds(
                     text = text,
                     left = with(density) { node.boundsInRoot.left.toDp() },
@@ -120,12 +118,50 @@ class LargeFontLayoutTest(
         )
     }
 
-    private fun assertNothingEscapesViewport() {
-        textNodes().forEach { (text, bounds) ->
+    private fun assertTextStaysInsideHorizontally() {
+        textNodes().forEach { bounds ->
             assertTrue(
-                "\"$text\" right=${bounds.right} bottom=${bounds.bottom} escapes " +
-                    "${viewport.width} x ${viewport.height}",
-                bounds.right <= viewport.width && bounds.bottom <= viewport.height
+                "\"${bounds.text}\" left=${bounds.left} right=${bounds.right} escapes the " +
+                    "${viewport.width} wide viewport",
+                bounds.left >= 0.dp && bounds.right <= viewport.width
+            )
+        }
+    }
+
+    // Below the fold is legitimate once a screen scrolls, so the property there is reachability
+    // rather than containment: visible, or brought into view by scrolling.
+    private fun assertReachable(label: String) {
+        val node = rule.onNodeWithText(label)
+        val before = node.getUnclippedBoundsInRoot()
+        if (before.right <= viewport.width && before.bottom <= viewport.height) return
+
+        runCatching { node.performScrollTo() }
+        val after = node.getUnclippedBoundsInRoot()
+        assertTrue(
+            "\"$label\" bottom=${after.bottom} right=${after.right} is outside " +
+                "${viewport.width} x ${viewport.height}",
+            after.right <= viewport.width && after.bottom <= viewport.height
+        )
+    }
+
+    private fun assertChipsFollowLabel(label: String, chips: List<String>) {
+        val labelBox = rule.onNodeWithText(label, useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val boxes = chips.map { rule.onNodeWithText(it).getUnclippedBoundsInRoot() }
+        val first = boxes.first()
+
+        assertTrue(
+            "first chip left=${first.left} is not under the label at ${labelBox.left}",
+            first.left - labelBox.left <= 8.dp
+        )
+        assertTrue(
+            "first chip top=${first.top} is not below the label bottom=${labelBox.bottom}",
+            first.top - labelBox.bottom >= -8.dp
+        )
+        boxes.forEach { box ->
+            assertTrue(
+                "chip left=${box.left} is not aligned with the first chip left=${first.left}",
+                box.left == first.left
             )
         }
     }
@@ -157,19 +193,22 @@ class LargeFontLayoutTest(
     }
 
     private fun assertOptionsScreenHolds() {
-        assertNothingEscapesViewport()
+        assertTextStaysInsideHorizontally()
+        assertChipsFollowLabel("Quality", listOf("ok q75", "good q85", "great q90"))
         assertLabelsStayOnOneLine(
             listOf("ok q75", "good q85", "great q90", "Compress"),
             labelLineHeight
         )
         assertLabelsStayOnOneLine(listOf("Keep EXIF", "Include PNG"), bodyLineHeight)
         assertNoTextNodesOverlap()
+        assertReachable("Compress")
     }
 
     private fun assertFolderBrowserHolds() {
-        assertNothingEscapesViewport()
+        assertTextStaysInsideHorizontally()
         assertLabelsStayOnOneLine(listOf("Refresh"), labelLineHeight)
         assertNoTextNodesOverlap()
+        assertReachable("Refresh")
     }
 
     @Test
