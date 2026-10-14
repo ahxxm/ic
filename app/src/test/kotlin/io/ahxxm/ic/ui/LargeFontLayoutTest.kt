@@ -91,6 +91,21 @@ class LargeFontLayoutTest {
     }
 
     @Test
+    fun folderBrowserHeader_refreshKeepsItsLabelWidth() {
+        setContent {
+            FolderBrowserScreen(onFolderSelected = { _, _ -> })
+        }
+
+        val refresh = rule.onNodeWithText("Refresh").getUnclippedBoundsInRoot()
+
+        assertTrue(
+            "Refresh width=${refresh.right - refresh.left} height=${refresh.bottom - refresh.top} " +
+                "right=${refresh.right}",
+            refresh.bottom - refresh.top <= 64.dp && refresh.right <= viewport.width
+        )
+    }
+
+    @Test
     fun folderBrowserHeader_titleDoesNotOverlapRefresh() {
         setContent {
             FolderBrowserScreen(onFolderSelected = { _, _ -> })
