@@ -25,6 +25,7 @@ android {
         targetSdk = 36
         versionCode = baseVersion
         versionName = "$baseVersion.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.generatedDensities?.clear()
     }
 
@@ -114,5 +115,12 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
 
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+
+    debugImplementation(platform(libs.compose.bom))
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
