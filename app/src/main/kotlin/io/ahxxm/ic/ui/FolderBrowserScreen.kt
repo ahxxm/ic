@@ -125,7 +125,8 @@ fun FolderBrowserScreen(
                     ) {
                         Text(
                             text = "Select folder to compress",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f)
                         )
                         TextButton(onClick = { scope.launch { viewModel.loadFolders() } }) {
                             Text("Refresh")
