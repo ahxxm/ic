@@ -163,10 +163,13 @@ class LargeFontLayoutTest(
             "first chip top=${first.top} is not below the label bottom=${labelBox.bottom}",
             first.top - labelBox.bottom >= -8.dp
         )
-        boxes.forEach { box ->
+        // Chips on one line run left to right, so it is the start of each line that must line up.
+        boxes.groupBy { it.top }.forEach { (top, line) ->
+            val lineStart = line.minOf { it.left }
+            val delta = lineStart - first.left
             assertTrue(
-                "chip left=${box.left} is not aligned with the first chip left=${first.left}",
-                box.left == first.left
+                "chips on line top=$top start at $lineStart instead of ${first.left}",
+                delta <= 8.dp && delta >= -8.dp
             )
         }
     }
