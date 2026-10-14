@@ -24,10 +24,9 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Layout regression tests for system font scale 2.0 (Settings > Display size and text).
- *
- * Runs on the JVM under Robolectric, as part of testDebugUnitTest. The viewport is pinned to
- * 360x640dp so the assertions do not depend on the machine running them.
+ * Font scale 2.0 and a 360x640dp viewport are pinned so the reported geometry does not depend on
+ * the machine. NATIVE graphics keeps text measurement real instead of stubbed. The Robolectric
+ * sandbox takes its SDK from targetSdk, whose platform jar needs Java 21, as installed in CI.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
