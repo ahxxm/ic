@@ -32,17 +32,9 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Viewport and font scale are pinned per case. Robolectric's sandbox screen is 320x470dp and
- * ForcedSize is clamped by it, so cases stay inside that or they would silently measure the
- * sandbox size. NATIVE graphics keeps text measurement real instead of stubbed. The platform jar
- * for targetSdk needs Java 21, as installed in CI.
- *
- * Two settings break these screens and are exercised separately: font scale enlarges text without
- * shrinking the window, display size shrinks the window without enlarging text.
- *
- * Every case asserts the same properties: text stays inside the viewport horizontally, labels stay
- * on one line, no two text nodes overlap, chips sit in one column next to their label, and every
- * interactive label is reachable, scrolling if the screen scrolls.
+ * The Robolectric sandbox is 320x470dp and clamps ForcedSize, so every case has to fit inside it or
+ * it would silently measure the sandbox instead. NATIVE graphics keeps text measurement real. The
+ * platform jar for targetSdk needs Java 21.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,8 +44,7 @@ class LargeFontLayoutTest(
     private val fontScale: Float,
 ) {
 
-    // DpSize is an inline value class, so it cannot appear in the parameter list: it is erased to
-    // a primitive long in the JVM constructor, which JUnit's reflection cannot pass.
+    // DpSize is an inline value class, erased to a long in the constructor, so JUnit cannot pass it.
     private val viewport = DpSize(widthDp.dp, heightDp.dp)
 
     @get:Rule
@@ -112,8 +103,6 @@ class LargeFontLayoutTest(
                 )
             }
 
-    // The case is only real if the window is at least as big as the pinned viewport, since
-    // ForcedSize is clamped by it. Without this a smaller sandbox would silently pass everything.
     private fun assertViewportIsHonored() {
         val root = rule.onRoot().getUnclippedBoundsInRoot()
         assertTrue(
@@ -133,8 +122,7 @@ class LargeFontLayoutTest(
         }
     }
 
-    // Below the fold is legitimate once a screen scrolls, so the property there is reachability
-    // rather than containment: visible, or brought into view by scrolling.
+    // Below the fold is legitimate once a screen scrolls, so scroll before asserting.
     private fun assertReachable(label: String) {
         val node = rule.onNodeWithText(label)
         val before = node.getUnclippedBoundsInRoot()
@@ -160,7 +148,8 @@ class LargeFontLayoutTest(
             first.left - labelBox.left <= 8.dp
         )
         assertTrue(
-            "first chip top=${first.top} is not below the label bottom=${labelBox.bottom}",
+            "first chip top=${first.top} shares the \"$label\" row, heading bottom=" +
+                "${labelBox.bottom}",
             first.top - labelBox.bottom >= -8.dp
         )
         // Chips on one line run left to right, so it is the start of each line that must line up.
