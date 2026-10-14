@@ -102,11 +102,11 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.serialization.json)
     implementation(libs.core.ktx)
     implementation(libs.exifinterface)
     implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
 
     // Native image encoders
     implementation(libs.aire)
