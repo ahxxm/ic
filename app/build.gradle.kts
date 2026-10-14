@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "io.ahxxm.ic"
-    compileSdk = 36
+    compileSdk = 37
 
     signingConfigs {
         create("release") {
