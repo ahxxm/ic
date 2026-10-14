@@ -25,6 +25,9 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
       - name: Build release APK
         run: ./gradlew assembleRelease
         env:
