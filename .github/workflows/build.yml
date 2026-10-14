@@ -21,9 +21,12 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: 'gradle'
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
 
       - name: Build release APK
         run: ./gradlew assembleRelease

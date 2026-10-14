@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "io.ahxxm.ic"
-    compileSdk = 36
+    compileSdk = 37
 
     signingConfigs {
         create("release") {
@@ -72,6 +72,28 @@ android {
             excludes += "META-INF/**/LICENSE*.txt"
         }
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                // Robolectric's Java 17+ flags (robolectric.org/getting-started), plus the export
+                // for FileDescriptorInterceptor, robolectric/robolectric#11434.
+                it.jvmArgs(
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.base/java.security=ALL-UNNAMED",
+                    "--add-opens=java.base/java.text=ALL-UNNAMED",
+                    "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+                    "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+                    "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+                    "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED"
+                )
+            }
+        }
+    }
 }
 
 kotlin {
@@ -101,11 +123,11 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.serialization.json)
     implementation(libs.core.ktx)
     implementation(libs.exifinterface)
     implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
 
     // Native image encoders
     implementation(libs.aire)
@@ -113,6 +135,12 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.robolectric)
 
+    debugImplementation(platform(libs.compose.bom))
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

@@ -2,6 +2,7 @@ package io.ahxxm.ic.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -42,6 +45,8 @@ import io.ahxxm.ic.domain.CompressionResult
 import io.ahxxm.ic.domain.Encoder
 import io.ahxxm.ic.domain.ImageItem
 import io.ahxxm.ic.domain.formatBytes
+
+private val GroupSpacing = 8.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,16 +89,22 @@ fun OptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             SampleStateContent(sampleState)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(GroupSpacing))
             HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(GroupSpacing))
 
-            // Quality
-            LabeledChipRow(label = "Quality") {
+            Text("Quality", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(4.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 QualityLevel.entries.forEach { level ->
                     FilterChip(
                         selected = qualityLevel == level,
@@ -103,10 +114,15 @@ fun OptionsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(GroupSpacing))
 
-            // Encoder
-            LabeledChipRow(label = "Encoder") {
+            Text("Encoder", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(4.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 FilterChip(
                     selected = encoder == Encoder.MOZJPEG,
                     onClick = { viewModel.encoder.value = Encoder.MOZJPEG },
@@ -119,12 +135,13 @@ fun OptionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(GroupSpacing))
 
             // Checkboxes
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
@@ -142,7 +159,7 @@ fun OptionsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(GroupSpacing))
 
             Text(
                 text = "Originals won't be modified yet",
@@ -150,7 +167,7 @@ fun OptionsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(GroupSpacing))
 
             Button(
                 onClick = { onConfirm(viewModel.buildOptions()) },
@@ -164,26 +181,13 @@ fun OptionsScreen(
 }
 
 @Composable
-private fun LabeledChipRow(label: String, chips: @Composable () -> Unit) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.weight(1f))
-        chips()
-    }
-}
-
-@Composable
 private fun SampleStateContent(state: SampleState) {
     when (state) {
         is SampleState.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(72.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -209,46 +213,49 @@ private fun SamplePreview(image: ImageItem, result: CompressionResult) {
     val color = if (savingsPct >= 10) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.error
 
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
             model = image.uri,
             contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
+                .size(72.dp)
                 .clip(RoundedCornerShape(8.dp))
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-        Text(
-            text = image.name,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${formatBytes(result.originalSize, false)} -> ${formatBytes(result.compressedSize, false)}",
-                style = MaterialTheme.typography.bodyMedium
+                text = image.name,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "-$savingsPct%",
-                style = MaterialTheme.typography.titleMedium,
-                color = color
-            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${formatBytes(result.originalSize, false)} -> " +
+                        formatBytes(result.compressedSize, false),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "-$savingsPct%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = color,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
