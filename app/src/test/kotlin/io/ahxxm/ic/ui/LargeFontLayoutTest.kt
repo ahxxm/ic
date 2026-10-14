@@ -13,21 +13,24 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import io.ahxxm.ic.ui.theme.ImageCompressorTheme
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Layout regression tests for system font scale 2.0 (Settings > Display size and text).
  *
- * The viewport is pinned to a 360x640dp viewport so the assertions do not depend on the
- * device profile of the emulator running them.
+ * Runs on the JVM under Robolectric, as part of testDebugUnitTest. The viewport is pinned to
+ * 360x640dp so the assertions do not depend on the machine running them.
  */
 @RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LargeFontLayoutTest {
 
     @get:Rule
@@ -37,14 +40,12 @@ class LargeFontLayoutTest {
 
     @Before
     fun grantMediaPermission() {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
         val permission = if (Build.VERSION.SDK_INT >= 33) {
             Manifest.permission.READ_MEDIA_IMAGES
         } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
-        instrumentation.uiAutomation
-            .grantRuntimePermission(instrumentation.targetContext.packageName, permission)
+        shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(permission)
     }
 
     private fun setContent(content: @Composable () -> Unit) {
