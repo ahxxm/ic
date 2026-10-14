@@ -47,9 +47,14 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LargeFontLayoutTest(
-    private val viewport: DpSize,
+    widthDp: Int,
+    heightDp: Int,
     private val fontScale: Float,
 ) {
+
+    // DpSize is an inline value class, so it cannot appear in the parameter list: it is erased to
+    // a primitive long in the JVM constructor, which JUnit's reflection cannot pass.
+    private val viewport = DpSize(widthDp.dp, heightDp.dp)
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
@@ -231,13 +236,13 @@ class LargeFontLayoutTest(
 
     companion object {
         @JvmStatic
-        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}x{1} fontScale {2}")
         fun cases(): List<Array<Any>> = listOf(
-            arrayOf("phone fontScale below 1", DpSize(320.dp, 470.dp), 0.85f),
-            arrayOf("phone fontScale 1", DpSize(320.dp, 470.dp), 1f),
-            arrayOf("phone fontScale 2", DpSize(320.dp, 470.dp), 2f),
-            arrayOf("shrunk phone fontScale 1", DpSize(277.dp, 400.dp), 1f),
-            arrayOf("shrunk phone fontScale 2", DpSize(277.dp, 400.dp), 2f),
+            arrayOf<Any>(320, 470, 0.85f),
+            arrayOf<Any>(320, 470, 1f),
+            arrayOf<Any>(320, 470, 2f),
+            arrayOf<Any>(277, 400, 1f),
+            arrayOf<Any>(277, 400, 2f),
         )
     }
 }
