@@ -20,6 +20,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
+import coil3.ColorImage
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
+import coil3.test.FakeImageLoaderEngine
 import io.ahxxm.ic.domain.ImageCompressionPreview
 import io.ahxxm.ic.domain.ImageItem
 import io.ahxxm.ic.ui.theme.ImageCompressorTheme
@@ -46,6 +51,7 @@ import java.io.File
  * - Both images are overlaid with contentDescription "Original" and "Compressed" and equal bounds.
  * - Toolbar back and system back close comparison first; back on the result list leaves Review.
  */
+@OptIn(DelicateCoilApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h640dp")
@@ -59,15 +65,27 @@ class ReviewComparisonTest {
 
     @Before
     fun setUp() {
+        val context = RuntimeEnvironment.getApplication()
         cacheDir = File(
-            RuntimeEnvironment.getApplication().cacheDir,
+            context.cacheDir,
             "review-comparison-${System.nanoTime()}"
         ).apply { mkdirs() }
         backCount = 0
+
+        // Coil's real loader can abort Robolectric native graphics (coil-kt/coil#3049).
+        val engine = FakeImageLoaderEngine.Builder()
+            .default(ColorImage())
+            .build()
+        SingletonImageLoader.setUnsafe(
+            ImageLoader.Builder(context)
+                .components { add(engine) }
+                .build()
+        )
     }
 
     @After
     fun tearDown() {
+        SingletonImageLoader.reset()
         cacheDir.deleteRecursively()
     }
 
@@ -130,7 +148,10 @@ class ReviewComparisonTest {
         rule.onNodeWithContentDescription("Comparison slider").assertDoesNotExist()
         rule.onNodeWithText("3 of 3 selected", substring = true).assertExists()
         assertEquals(0, backCount)
-        session.previews.forEach { assertTrue("${it.tempFile!!.name} was deleted", it.tempFile!!.exists()) }
+        session.previews.forEach { preview ->
+            val tempFile = requireNotNull(preview.tempFile)
+            assertTrue("${tempFile.name} was deleted", tempFile.exists())
+        }
     }
 
     @Test
@@ -142,7 +163,10 @@ class ReviewComparisonTest {
 
         rule.onNodeWithText("Review Savings").assertDoesNotExist()
         assertEquals(1, backCount)
-        session.previews.forEach { assertFalse("${it.tempFile!!.name} survived discard", it.tempFile!!.exists()) }
+        session.previews.forEach { preview ->
+            val tempFile = requireNotNull(preview.tempFile)
+            assertFalse("${tempFile.name} survived discard", tempFile.exists())
+        }
     }
 
     @Test
@@ -235,7 +259,6 @@ class ReviewComparisonTest {
         )
     }
 
-    // Avoid native image decoding in Robolectric; these tests assert semantics and layout, not pixels.
     private fun writeImagePlaceholder(file: File) {
         file.writeBytes(byteArrayOf(0))
     }
