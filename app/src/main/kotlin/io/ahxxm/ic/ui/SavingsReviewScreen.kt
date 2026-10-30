@@ -16,20 +16,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -39,45 +38,37 @@ import coil3.compose.AsyncImage
 import io.ahxxm.ic.domain.ImageCompressionPreview
 import io.ahxxm.ic.domain.formatBytes
 
-/**
- * The whole Review visit: the batch result list and, when [ReviewSession.comparisonIndex] is set,
- * a comparison shown in place. Both modes read from the same session, so selections and the list's
- * scroll position survive the switch.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Keeps the result list and comparison in one composition for the whole Review visit. */
 @Composable
 fun SavingsReviewScreen(
-    session: ReviewSession,
+    previews: List<ImageCompressionPreview>,
     onConfirm: (List<ImageCompressionPreview>) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    var selections by remember(previews) { mutableStateOf(defaultSelections(previews)) }
+    var comparisonIndex by remember(previews) { mutableStateOf<Int?>(null) }
+    var confirmed by remember(previews) { mutableStateOf(false) }
 
-    val leaveReview: () -> Unit = {
-        session.discard()
-        onBack()
+    DisposableEffect(previews) {
+        onDispose {
+            if (!confirmed) previews.forEach { it.tempFile?.delete() }
+        }
     }
+
     val back: () -> Unit = {
-        if (session.isComparing) session.closeComparison() else leaveReview()
+        if (comparisonIndex == null) onBack() else comparisonIndex = null
     }
-
     BackHandler(onBack = back)
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text("Review Savings") },
-                navigationIcon = {
-                    IconButton(onClick = back) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            BackTopAppBar(title = "Review Savings", onBack = back)
         }
     ) { padding ->
-        val preview = session.comparisonIndex?.let { session.previews.getOrNull(it) }
+        val preview = comparisonIndex?.let { previews.getOrNull(it) }
         val contentModifier = Modifier
             .fillMaxSize()
             .padding(padding)
@@ -87,15 +78,20 @@ fun SavingsReviewScreen(
             ComparisonContent(preview = preview, modifier = contentModifier)
         } else {
             ResultList(
-                previews = session.previews,
-                selections = session.selections,
+                previews = previews,
+                selections = selections,
                 listState = listState,
-                onSelectionChange = session::setSelected,
-                onSelectAll = session::selectAll,
-                onDeselectAll = session::deselectAll,
-                onSmartSelect = session::smartSelect,
-                onOpenComparison = session::openComparison,
-                onConfirm = { onConfirm(session.confirm()) },
+                onSelectionChange = { index, selected ->
+                    selections = selections.toMutableList().apply { this[index] = selected }
+                },
+                onSelectAll = { selections = List(previews.size) { true } },
+                onDeselectAll = { selections = List(previews.size) { false } },
+                onSmartSelect = { selections = defaultSelections(previews) },
+                onOpenComparison = { comparisonIndex = it },
+                onConfirm = {
+                    confirmed = true
+                    onConfirm(previews.filterIndexed { index, _ -> selections[index] })
+                },
                 modifier = contentModifier
             )
         }
@@ -164,6 +160,11 @@ private fun ComparisonSummary(preview: ImageCompressionPreview) {
         }
     }
 }
+
+private fun defaultSelections(previews: List<ImageCompressionPreview>): List<Boolean> =
+    previews.map {
+        !ImageCompressionPreview.shouldAutoDeselect(it.savingsPercent, it.savingsBytes)
+    }
 
 @Composable
 private fun ResultList(

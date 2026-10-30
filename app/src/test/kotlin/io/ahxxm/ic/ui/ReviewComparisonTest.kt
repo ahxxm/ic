@@ -10,9 +10,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetProgressAction
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -42,15 +41,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/**
- * Expected Review UI contract:
- * - `SavingsReviewScreen(session, onConfirm, onBack)` renders the result list and an internal
- *   comparison view from the same `ReviewSession`; no comparison screen or new session is entered.
- * - The comparison is one draggable split slider with contentDescription "Comparison slider"
- *   whose progress is in 0f..1f and which accepts the SetProgress semantics action.
- * - Both images are overlaid with contentDescription "Original" and "Compressed" and equal bounds.
- * - Toolbar back and system back close comparison first; back on the result list leaves Review.
- */
 @OptIn(DelicateCoilApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -90,45 +80,37 @@ class ReviewComparisonTest {
     }
 
     @Test
-    fun `tapping a preview shows one aligned split comparison inside review`() {
-        val session = session(3)
-        setReview(session)
+    fun `tapping a preview opens an aligned adjustable comparison`() {
+        setReview(previews(3))
 
         rule.onNodeWithText("photo-00.jpg").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithContentDescription("Comparison slider").assertExists()
-        rule.onNodeWithContentDescription("Original").assertExists()
-        rule.onNodeWithContentDescription("Compressed").assertExists()
+        comparisonSlider().assertExists()
+        rule.onNodeWithText("Apply to 3 Images").assertDoesNotExist()
         assertSameBounds(
             rule.onNodeWithContentDescription("Original"),
             rule.onNodeWithContentDescription("Compressed")
         )
-
-        // Still the Review result screen, not a separate comparison destination.
         rule.onNodeWithText("Review Savings").assertExists()
-        rule.onNode(hasText("Original (", substring = true) and hasClickAction())
-            .assertDoesNotExist()
-        rule.onNode(hasText("Compressed (", substring = true) and hasClickAction())
-            .assertDoesNotExist()
     }
 
     @Test
     fun `toolbar back from comparison restores the same list and selection`() {
-        val session = session(3)
-        setReview(session)
+        val previews = previews(3)
+        setReview(previews)
 
         rule.onAllNodes(isToggleable())[1].performClick()
         rule.onNodeWithText("2 of 3 selected", substring = true).assertExists()
 
-        val tempFiles = session.previews.map { it.tempFile!! }
+        val tempFiles = previews.map { requireNotNull(it.tempFile) }
         rule.onNodeWithText("photo-00.jpg").performClick()
-        rule.onNodeWithContentDescription("Comparison slider").assertExists()
+        comparisonSlider().assertExists()
 
         rule.onNodeWithContentDescription("Back").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithContentDescription("Comparison slider").assertDoesNotExist()
+        comparisonSlider().assertDoesNotExist()
         rule.onNodeWithText("2 of 3 selected", substring = true).assertExists()
         assertEquals(0, backCount)
         tempFiles.forEach { assertTrue("${it.name} was deleted", it.exists()) }
@@ -136,19 +118,19 @@ class ReviewComparisonTest {
 
     @Test
     fun `system back closes comparison before leaving review`() {
-        val session = session(3)
-        setReview(session)
+        val previews = previews(3)
+        setReview(previews)
 
         rule.onNodeWithText("photo-01.jpg").performClick()
         rule.waitForIdle()
-        rule.onNodeWithContentDescription("Comparison slider").assertExists()
+        comparisonSlider().assertExists()
 
         pressSystemBack()
 
-        rule.onNodeWithContentDescription("Comparison slider").assertDoesNotExist()
+        comparisonSlider().assertDoesNotExist()
         rule.onNodeWithText("3 of 3 selected", substring = true).assertExists()
         assertEquals(0, backCount)
-        session.previews.forEach { preview ->
+        previews.forEach { preview ->
             val tempFile = requireNotNull(preview.tempFile)
             assertTrue("${tempFile.name} was deleted", tempFile.exists())
         }
@@ -156,27 +138,41 @@ class ReviewComparisonTest {
 
     @Test
     fun `system back on the result list leaves review and discards the batch`() {
-        val session = session(3)
-        setReview(session)
+        val previews = previews(3)
+        setReview(previews)
 
         pressSystemBack()
 
         rule.onNodeWithText("Review Savings").assertDoesNotExist()
         assertEquals(1, backCount)
-        session.previews.forEach { preview ->
+        previews.forEach { preview ->
             val tempFile = requireNotNull(preview.tempFile)
             assertFalse("${tempFile.name} survived discard", tempFile.exists())
         }
     }
 
     @Test
-    fun `split slider exposes adjustable 0 to 1 progress semantics`() {
-        val session = session(3)
-        setReview(session)
+    fun `apply hands selected previews to the next stage without deleting them`() {
+        val previews = previews(3)
+        var applied: List<ImageCompressionPreview>? = null
+        setReview(previews, onConfirm = { applied = it })
+
+        rule.onAllNodes(isToggleable())[1].performClick()
+        rule.onNodeWithText("Apply to 2 Images").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("photo-00.jpg", "photo-02.jpg"), applied?.map { it.image.name })
+        rule.onNodeWithText("Review Savings").assertDoesNotExist()
+        previews.forEach { assertTrue(requireNotNull(it.tempFile).exists()) }
+    }
+
+    @Test
+    fun `split slider adjusts from 0 to 1`() {
+        setReview(previews(3))
         rule.onNodeWithText("photo-02.jpg").performClick()
         rule.waitForIdle()
 
-        val slider = rule.onNodeWithContentDescription("Comparison slider")
+        val slider = comparisonSlider()
         val before = slider.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
         assertEquals(0f, before.range.start)
         assertEquals(1f, before.range.endInclusive)
@@ -192,12 +188,11 @@ class ReviewComparisonTest {
 
     @Test
     fun `result list scroll position survives comparison`() {
-        val session = session(14)
-        setReview(session)
+        setReview(previews(14))
 
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(10)
         rule.onNodeWithText("photo-10.jpg").performClick()
-        rule.onNodeWithContentDescription("Comparison slider").assertExists()
+        comparisonSlider().assertExists()
 
         rule.onNodeWithContentDescription("Back").performClick()
         rule.waitForIdle()
@@ -205,14 +200,22 @@ class ReviewComparisonTest {
         rule.onNodeWithText("photo-10.jpg").assertExists()
     }
 
-    private fun setReview(session: ReviewSession) {
+    private fun comparisonSlider() = rule.onNode(hasSetProgressAction())
+
+    private fun setReview(
+        previews: List<ImageCompressionPreview>,
+        onConfirm: (List<ImageCompressionPreview>) -> Unit = {}
+    ) {
         rule.setContent {
             ImageCompressorTheme {
                 var visible by remember { mutableStateOf(true) }
                 if (visible) {
                     SavingsReviewScreen(
-                        session = session,
-                        onConfirm = {},
+                        previews = previews,
+                        onConfirm = { selected ->
+                            onConfirm(selected)
+                            visible = false
+                        },
                         onBack = {
                             visible = false
                             backCount++
@@ -237,8 +240,8 @@ class ReviewComparisonTest {
         assertEquals(originalBounds.bottom.value, compressedBounds.bottom.value, 1f)
     }
 
-    private fun session(count: Int): ReviewSession =
-        ReviewSession(List(count) { index -> preview(index) })
+    private fun previews(count: Int): List<ImageCompressionPreview> =
+        List(count) { index -> preview(index) }
 
     private fun preview(index: Int): ImageCompressionPreview {
         val original = File(cacheDir, "original.jpg")
