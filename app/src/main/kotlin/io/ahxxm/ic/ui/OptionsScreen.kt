@@ -14,20 +14,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,7 +42,6 @@ import io.ahxxm.ic.domain.formatBytes
 
 private val GroupSpacing = 8.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OptionsScreen(
     bucketId: Long,
@@ -74,14 +67,7 @@ fun OptionsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(folderName.ifEmpty { "Options" }) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            BackTopAppBar(title = folderName.ifEmpty { "Options" }, onBack = onBack)
         },
         modifier = modifier
     ) { padding ->
