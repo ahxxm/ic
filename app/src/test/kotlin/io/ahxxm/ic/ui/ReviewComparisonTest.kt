@@ -8,10 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollToIndexAction
-import androidx.compose.ui.test.hasSetProgressAction
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -200,7 +200,8 @@ class ReviewComparisonTest {
         rule.onNodeWithText("photo-10.jpg").assertExists()
     }
 
-    private fun comparisonSlider() = rule.onNode(hasSetProgressAction())
+    private fun comparisonSlider() =
+        rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
 
     private fun setReview(
         previews: List<ImageCompressionPreview>,
