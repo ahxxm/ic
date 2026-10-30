@@ -1,6 +1,5 @@
 package io.ahxxm.ic.ui
 
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
@@ -15,7 +14,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -219,9 +218,9 @@ class ReviewComparisonTest {
 
     private fun preview(index: Int): ImageCompressionPreview {
         val original = File(cacheDir, "original.jpg")
-        if (!original.exists()) writeJpeg(original)
+        if (!original.exists()) writeImagePlaceholder(original)
         val compressed = File(cacheDir, "compressed-$index.jpg")
-        if (!compressed.exists()) writeJpeg(compressed)
+        if (!compressed.exists()) writeImagePlaceholder(compressed)
 
         return ImageCompressionPreview(
             image = ImageItem(
@@ -236,9 +235,8 @@ class ReviewComparisonTest {
         )
     }
 
-    private fun writeJpeg(file: File) {
-        val bitmap = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888)
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
-        bitmap.recycle()
+    // Avoid native image decoding in Robolectric; these tests assert semantics and layout, not pixels.
+    private fun writeImagePlaceholder(file: File) {
+        file.writeBytes(byteArrayOf(0))
     }
 }
