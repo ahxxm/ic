@@ -1,6 +1,6 @@
 # Image Compressor
 
-Native Android app for JPEG compression (jpegli, mozjpeg). iOS port (working, local dev) in `ios/`.
+Native Android app for JPEG compression (jpegli, mozjpeg). iOS port (working demo, local dev only, no parity ever needed) in `ios/`.
 
 ## Stack
 
