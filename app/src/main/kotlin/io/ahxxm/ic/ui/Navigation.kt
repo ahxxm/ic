@@ -17,7 +17,6 @@ import kotlinx.serialization.Serializable
 @Serializable data object FolderBrowser
 @Serializable data class Options(val bucketId: Long, val folderName: String)
 @Serializable data class SavingsPreview(val bucketId: Long)
-@Serializable data object Comparison
 @Serializable data object Progress
 @Serializable data object Done
 
@@ -25,7 +24,6 @@ import kotlinx.serialization.Serializable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     var currentOptions by remember { mutableStateOf(CompressionOptions()) }
-    var selectedForComparison by remember { mutableStateOf<ImageCompressionPreview?>(null) }
     var selectedPreviews by remember { mutableStateOf<List<ImageCompressionPreview>>(emptyList()) }
     var completionCount by remember { mutableStateOf(0) }
     var completionSavedBytes by remember { mutableStateOf(0L) }
@@ -65,21 +63,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                     selectedPreviews = previews
                     navController.navigate(Progress)
                 },
-                onBack = { navController.popBackStack() },
-                onImageClick = { preview ->
-                    selectedForComparison = preview
-                    navController.navigate(Comparison)
-                }
+                onBack = { navController.popBackStack() }
             )
-        }
-
-        composable<Comparison> {
-            selectedForComparison?.let { preview ->
-                ComparisonScreen(
-                    preview = preview,
-                    onBack = { navController.popBackStack() }
-                )
-            }
         }
 
         composable<Progress> {
