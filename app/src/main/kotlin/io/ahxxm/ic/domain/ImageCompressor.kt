@@ -165,7 +165,7 @@ class ImageCompressor(private val context: Context) {
         // so device name and `XiaomiSettings`(0x9999) get lost.
         // Mirrors ExifInterface.EXIF_TAGS structure (list of lists by IFD type)
         // Excludes: thumbnail tags (stale after recompression), maker notes (proprietary)
-        private val EXIF_TAGS = listOf(
+        internal val EXIF_TAGS = listOf(
             // IFD_TIFF_TAGS - Primary image TIFF tags
             listOf(
                 ExifInterface.TAG_IMAGE_WIDTH,

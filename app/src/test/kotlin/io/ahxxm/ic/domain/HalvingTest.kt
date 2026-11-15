@@ -6,7 +6,6 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,12 +56,13 @@ class DecodeHalvingTest {
         assertEquals(2001, bounds.outWidth)
         assertEquals(1501, bounds.outHeight)
 
-        val decoded = BitmapFactory.decodeStream(
-            source.inputStream(),
-            null,
-            BitmapFactory.Options().apply { inSampleSize = 2 }
-        )
-        assertNotNull(decoded)
+        val decoded = requireNotNull(
+            BitmapFactory.decodeStream(
+                source.inputStream(),
+                null,
+                BitmapFactory.Options().apply { inSampleSize = 2 }
+            )
+        ) { "decode with inSampleSize = 2 failed" }
         assertEquals(1001, decoded.width)
         assertEquals(751, decoded.height)
         decoded.recycle()
