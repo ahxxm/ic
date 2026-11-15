@@ -54,7 +54,6 @@ fun OptionsScreen(
     val sampleState by viewModel.sampleState.collectAsState()
     val qualityLevel by viewModel.qualityLevel.collectAsState()
     val preserveExif by viewModel.preserveExif.collectAsState()
-    val convertPng by viewModel.convertPng.collectAsState()
     val halveOversized by viewModel.halveOversized.collectAsState()
     val encoder by viewModel.encoder.collectAsState()
 
@@ -136,13 +135,6 @@ fun OptionsScreen(
                         onCheckedChange = { viewModel.preserveExif.value = it }
                     )
                     Text("Keep EXIF", style = MaterialTheme.typography.bodyMedium)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = convertPng,
-                        onCheckedChange = { viewModel.setConvertPng(bucketId, it) }
-                    )
-                    Text("Include PNG", style = MaterialTheme.typography.bodyMedium)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(

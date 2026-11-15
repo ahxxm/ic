@@ -39,13 +39,6 @@ sealed class SampleState {
     data class Error(val message: String) : SampleState()
 }
 
-private data class SampleParams(
-    val quality: QualityLevel,
-    val encoder: Encoder,
-    val keepExif: Boolean,
-    val halveOversized: Boolean
-)
-
 @OptIn(FlowPreview::class)
 class OptionsViewModel(application: Application) : AndroidViewModel(application) {
     private val compressor = ImageCompressor(application)
@@ -56,7 +49,6 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
 
     val qualityLevel = MutableStateFlow(QualityLevel.GOOD)
     val preserveExif = MutableStateFlow(true)
-    val convertPng = MutableStateFlow(true)
     val encoder = MutableStateFlow(Encoder.MOZJPEG)
     val halveOversized = MutableStateFlow(true)
 
@@ -68,22 +60,16 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
 
     private val compressionTrigger = combine(
         qualityLevel, encoder, preserveExif, halveOversized
-    ) { q, e, p, h -> SampleParams(q, e, p, h) }
+    ) { _, _, _, _ -> Unit }
         .debounce(300)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         viewModelScope.launch {
-            compressionTrigger.collect { params ->
-                params ?: return@collect
+            compressionTrigger.collect { triggered ->
+                triggered ?: return@collect
                 val sample = sampleImage ?: return@collect
-                compress(
-                    sample,
-                    params.quality,
-                    params.encoder,
-                    params.keepExif,
-                    params.halveOversized
-                )
+                compress(sample)
             }
         }
     }
@@ -91,7 +77,7 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     fun loadSampleImage(bucketId: Long) {
         viewModelScope.launch {
             val images = repository.getImagesInFolder(bucketId)
-                .filter { it.isJpeg || it.isPng }
+                .filter { it.isProcessable }
 
             val current = sampleImage
             if (current != null && images.any { it.uri == current.uri }) {
@@ -105,50 +91,25 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
             }
 
             sampleImage = sample
-            compress(sample, qualityLevel.value, encoder.value, preserveExif.value)
-        }
-    }
-
-    fun setConvertPng(bucketId: Long, enabled: Boolean) {
-        if (convertPng.value == enabled) return
-        convertPng.value = enabled
-        sampleImage = null
-        viewModelScope.launch {
-            val images = repository.getImagesInFolder(bucketId)
-                .filter { if (enabled) it.isJpeg || it.isPng else it.isJpeg }
-
-            val sample = images.randomOrNull()
-            if (sample == null) {
-                _navigateBack.send(Unit)
-                return@launch
-            }
-            sampleImage = sample
-            compress(sample, qualityLevel.value, encoder.value, preserveExif.value)
+            compress(sample)
         }
     }
 
     fun buildOptions(): CompressionOptions = CompressionOptions(
         quality = qualityLevel.value.qualityFor(encoder.value),
         preserveExif = preserveExif.value,
-        convertPng = convertPng.value,
         encoder = encoder.value,
         halveOversized = halveOversized.value
     )
 
-    private suspend fun compress(
-        image: ImageItem,
-        quality: QualityLevel,
-        enc: Encoder,
-        keepExif: Boolean
-    ) {
+    private suspend fun compress(image: ImageItem) {
         _sampleState.value = SampleState.Loading
         currentTempFile?.delete()
 
         val options = CompressionOptions(
-            quality = quality.qualityFor(enc),
-            preserveExif = keepExif,
-            convertPng = convertPng.value,
-            encoder = enc,
+            quality = qualityLevel.value.qualityFor(encoder.value),
+            preserveExif = preserveExif.value,
+            encoder = encoder.value,
             halveOversized = halveOversized.value
         )
         val result = compressor.compressImage(image, options)

@@ -47,15 +47,10 @@ fun SavingsPreviewScreen(
     LaunchedEffect(bucketId, options) {
         val repository = ImageRepository(context.contentResolver)
         val allImages = repository.getImagesInFolder(bucketId)
-        val images = allImages.filter { it.isJpeg || (it.isPng && options.convertPng) }
+        val images = allImages.filter { it.isProcessable }
 
         if (images.isEmpty()) {
-            val hasPngs = allImages.any { it.isPng }
-            errorMessage = if (hasPngs && !options.convertPng) {
-                "No JPEG images found.\nEnable 'Convert PNG to JPEG' in options to include ${allImages.count { it.isPng }} PNG files."
-            } else {
-                "No processable images in this folder."
-            }
+            errorMessage = "No processable images in this folder."
             return@LaunchedEffect
         }
 
