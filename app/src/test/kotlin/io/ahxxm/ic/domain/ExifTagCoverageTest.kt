@@ -20,7 +20,7 @@ class ExifTagCoverageTest {
             .filter { it.type == String::class.java && it.name.startsWith("TAG_") }
             .associate { it.get(null) as String to it.name }
 
-        val copied = ImageCompressor.EXIF_TAGS.flatten().toSet()
+        val copied = ImageCompressor.EXIF_TAGS.toSet()
 
         val dropped = (library.keys - copied)
             .mapNotNull { library[it]?.let { name -> name to it } }
