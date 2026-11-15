@@ -49,7 +49,7 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
 
     val qualityLevel = MutableStateFlow(QualityLevel.GOOD)
     val preserveExif = MutableStateFlow(true)
-    val encoder = MutableStateFlow(Encoder.MOZJPEG)
+    val encoder = MutableStateFlow(Encoder.JPEGLI)
     val halveOversized = MutableStateFlow(true)
 
     private val _sampleState = MutableStateFlow<SampleState>(SampleState.Loading)
@@ -95,6 +95,10 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun presetEncoder(folderName: String) {
+        encoder.value = defaultEncoderFor(folderName)
+    }
+
     fun buildOptions(): CompressionOptions = CompressionOptions(
         quality = qualityLevel.value.qualityFor(encoder.value),
         preserveExif = preserveExif.value,
@@ -125,5 +129,14 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         super.onCleared()
         currentTempFile?.delete()
+    }
+
+    companion object {
+        // Screenshot folders hold graphics, where mozjpeg's ringing suppression
+        // beats jpegli's photo tuning; photos default to jpegli
+        internal fun defaultEncoderFor(folderName: String): Encoder =
+            if (folderName.contains("screen", ignoreCase = true) ||
+                folderName.contains("shot", ignoreCase = true)
+            ) Encoder.MOZJPEG else Encoder.JPEGLI
     }
 }

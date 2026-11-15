@@ -57,6 +57,10 @@ fun OptionsScreen(
     val halveOversized by viewModel.halveOversized.collectAsState()
     val encoder by viewModel.encoder.collectAsState()
 
+    LaunchedEffect(folderName) {
+        viewModel.presetEncoder(folderName)
+    }
+
     LaunchedEffect(bucketId) {
         viewModel.loadSampleImage(bucketId)
     }
