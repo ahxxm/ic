@@ -196,7 +196,7 @@ class LargeFontLayoutTest(
             listOf("ok q75", "good q85", "great q90", "Compress"),
             labelLineHeight
         )
-        assertLabelsStayOnOneLine(listOf("Keep EXIF", "Include PNG"), bodyLineHeight)
+        assertLabelsStayOnOneLine(listOf("Keep EXIF", "Halve 20MP+"), bodyLineHeight)
         assertNoTextNodesOverlap()
         assertReachable("Compress")
     }

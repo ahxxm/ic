@@ -48,24 +48,37 @@ class HalvingDecisionTest {
 class DecodeHalvingTest {
 
     @Test
-    fun `inSampleSize 2 halves decoder output, odd dimensions round up`() {
-        val source = newJpeg(2001, 1501)
-
+    fun `inSampleSize 2 halves decoder output`() {
+        // Even size: exact halving under any rounding convention
+        val source = newJpeg(2000, 1500)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         source.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
-        assertEquals(2001, bounds.outWidth)
-        assertEquals(1501, bounds.outHeight)
+        assertEquals(2000, bounds.outWidth)
+        assertEquals(1500, bounds.outHeight)
 
-        val decoded = requireNotNull(
+        val even = requireNotNull(
             BitmapFactory.decodeStream(
                 source.inputStream(),
                 null,
                 BitmapFactory.Options().apply { inSampleSize = 2 }
             )
-        ) { "decode with inSampleSize = 2 failed" }
-        assertEquals(1001, decoded.width)
-        assertEquals(751, decoded.height)
-        decoded.recycle()
+        ) { "decode(2000x1500, inSampleSize = 2) returned null" }
+        assertEquals(1000, even.width)
+        assertEquals(750, even.height)
+        even.recycle()
+
+        // Odd size: on-device libjpeg rounds up, Robolectric's decoder rounds
+        // down, so pin "within one pixel of half" instead of one convention
+        val odd = requireNotNull(
+            BitmapFactory.decodeStream(
+                newJpeg(2001, 1501).inputStream(),
+                null,
+                BitmapFactory.Options().apply { inSampleSize = 2 }
+            )
+        ) { "decode(2001x1501, inSampleSize = 2) returned null" }
+        assertTrue("odd width ${odd.width} not ~half of 2001", odd.width in 1000..1001)
+        assertTrue("odd height ${odd.height} not ~half of 1501", odd.height in 750..751)
+        odd.recycle()
     }
 
     private fun newJpeg(width: Int, height: Int): File {
@@ -96,20 +109,30 @@ class ExifRestatementTest {
         dest.saveAttributes()
 
         val out = ExifInterface(jpeg)
-        assertEquals("1000", out.getAttribute(ExifInterface.TAG_IMAGE_WIDTH))
-        assertEquals("750", out.getAttribute(ExifInterface.TAG_IMAGE_LENGTH))
-        assertEquals("1000", out.getAttribute(ExifInterface.TAG_PIXEL_X_DIMENSION))
-        assertEquals("750", out.getAttribute(ExifInterface.TAG_PIXEL_Y_DIMENSION))
-        assertEquals("350/2", out.getAttribute(ExifInterface.TAG_X_RESOLUTION))
-        assertEquals("800/2", out.getAttribute(ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION))
-        assertEquals("1000 1500 50 50", out.getAttribute(ExifInterface.TAG_SUBJECT_AREA))
-        assertEquals("1000 1500", out.getAttribute(ExifInterface.TAG_SUBJECT_LOCATION))
+        val expected = mapOf(
+            ExifInterface.TAG_IMAGE_WIDTH to "1000",
+            ExifInterface.TAG_IMAGE_LENGTH to "750",
+            ExifInterface.TAG_PIXEL_X_DIMENSION to "1000",
+            ExifInterface.TAG_PIXEL_Y_DIMENSION to "750",
+            ExifInterface.TAG_X_RESOLUTION to "350/2",
+            ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION to "800/2",
+            ExifInterface.TAG_SUBJECT_AREA to "1000 1500 50 50",
+            ExifInterface.TAG_SUBJECT_LOCATION to "1000 1500",
+        )
+        val mismatches = expected.entries
+            .filter { out.getAttribute(it.key) != it.value }
+            .joinToString("\n") { (tag, wrote) ->
+                "${tag}: wrote $wrote, read ${out.getAttribute(tag)}"
+            }
+        assertTrue("tags changed across restate+save:\n$mismatches", mismatches.isEmpty())
     }
 
+    // SOF dimensions match the restated ones: ExifInterface may normalize
+    // primary dimension tags against the stream, so both paths must agree
     private fun newJpeg(): File {
         val file = File.createTempFile("exif", ".jpg")
         file.deleteOnExit()
-        Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        Bitmap.createBitmap(1000, 750, Bitmap.Config.ARGB_8888)
             .compress(Bitmap.CompressFormat.JPEG, 90, file.outputStream())
         return file
     }

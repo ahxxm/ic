@@ -145,8 +145,8 @@ class ImageCompressor(private val context: Context) {
             }
         }
 
-        // Halves each space-separated numeric token; rationals double the
-        // denominator instead, so no precision is lost ("350/1" -> "350/2")
+        // Rationals double the denominator rather than halve the numerator,
+        // which stays exact for odd numerators ("351/1" -> "351/2")
         internal fun halveNumericExifValue(value: String): String =
             value.split(" ").joinToString(" ") { token ->
                 val slash = token.indexOf('/')
