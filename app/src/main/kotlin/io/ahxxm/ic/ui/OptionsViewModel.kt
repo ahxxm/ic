@@ -39,6 +39,13 @@ sealed class SampleState {
     data class Error(val message: String) : SampleState()
 }
 
+private data class SampleParams(
+    val quality: QualityLevel,
+    val encoder: Encoder,
+    val keepExif: Boolean,
+    val halveOversized: Boolean
+)
+
 @OptIn(FlowPreview::class)
 class OptionsViewModel(application: Application) : AndroidViewModel(application) {
     private val compressor = ImageCompressor(application)
@@ -51,6 +58,7 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     val preserveExif = MutableStateFlow(true)
     val convertPng = MutableStateFlow(true)
     val encoder = MutableStateFlow(Encoder.MOZJPEG)
+    val halveOversized = MutableStateFlow(true)
 
     private val _sampleState = MutableStateFlow<SampleState>(SampleState.Loading)
     val sampleState: StateFlow<SampleState> = _sampleState
@@ -59,8 +67,8 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     val navigateBack = _navigateBack.receiveAsFlow()
 
     private val compressionTrigger = combine(
-        qualityLevel, encoder, preserveExif
-    ) { q, e, p -> Triple(q, e, p) }
+        qualityLevel, encoder, preserveExif, halveOversized
+    ) { q, e, p, h -> SampleParams(q, e, p, h) }
         .debounce(300)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -69,7 +77,13 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
             compressionTrigger.collect { params ->
                 params ?: return@collect
                 val sample = sampleImage ?: return@collect
-                compress(sample, params.first, params.second, params.third)
+                compress(
+                    sample,
+                    params.quality,
+                    params.encoder,
+                    params.keepExif,
+                    params.halveOversized
+                )
             }
         }
     }
@@ -117,7 +131,8 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
         quality = qualityLevel.value.qualityFor(encoder.value),
         preserveExif = preserveExif.value,
         convertPng = convertPng.value,
-        encoder = encoder.value
+        encoder = encoder.value,
+        halveOversized = halveOversized.value
     )
 
     private suspend fun compress(
@@ -133,7 +148,8 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
             quality = quality.qualityFor(enc),
             preserveExif = keepExif,
             convertPng = convertPng.value,
-            encoder = enc
+            encoder = enc,
+            halveOversized = halveOversized.value
         )
         val result = compressor.compressImage(image, options)
         currentTempFile = result.tempFile

@@ -38,6 +38,14 @@ class ImageCompressor(private val context: Context) {
             val decodeOptions = BitmapFactory.Options().apply {
                 inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
             }
+
+            // Halve oversized sources at decode time: the decoder subsamples
+            // during IDCT, so the full-resolution bitmap is never allocated
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            openOriginalStream(image.uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            val halved = shouldHalve(bounds.outWidth, bounds.outHeight, options.halveOversized)
+            if (halved) decodeOptions.inSampleSize = 2
+
             val bitmap = inputStream.use { BitmapFactory.decodeStream(it, null, decodeOptions) }
                 ?: return@withContext CompressionResult(
                     originalSize = image.sizeBytes,
@@ -61,11 +69,13 @@ class ImageCompressor(private val context: Context) {
                     out.toByteArray()
                 }
             }
+            val outWidth = bitmap.width
+            val outHeight = bitmap.height
             tempFile.writeBytes(compressed)
             bitmap.recycle()
 
             if (options.preserveExif && image.isJpeg) {
-                copyExifData(image, tempFile)
+                copyExifData(image, tempFile, if (halved) outWidth to outHeight else null)
             }
 
             CompressionResult(
@@ -90,7 +100,7 @@ class ImageCompressor(private val context: Context) {
     private fun openOriginalStream(uri: Uri): InputStream? =
         context.contentResolver.openInputStream(MediaStore.setRequireOriginal(uri))
 
-    private fun copyExifData(image: ImageItem, destFile: File) {
+    private fun copyExifData(image: ImageItem, destFile: File, halvedDims: Pair<Int, Int>? = null) {
         try {
             val inputStream = openOriginalStream(image.uri) ?: return
             val sourceExif = inputStream.use { ExifInterface(it) }
@@ -101,6 +111,7 @@ class ImageCompressor(private val context: Context) {
                     destExif.setAttribute(tag, value)
                 }
             }
+            halvedDims?.let { (w, h) -> restateResolutionTags(destExif, w, h) }
             destExif.saveAttributes()
         } catch (_: Exception) {
             // EXIF copy is best-effort
@@ -108,6 +119,48 @@ class ImageCompressor(private val context: Context) {
     }
 
     companion object {
+        internal fun shouldHalve(width: Int, height: Int, halveOversized: Boolean): Boolean =
+            halveOversized && width.toLong() * height > CompressionOptions.OVERSIZE_PIXELS
+
+        // Tags copied verbatim describe the original resolution. The four
+        // dimension tags state it directly; the rest encode pixel coordinates
+        // or pixel densities and are halved along with the image.
+        internal fun restateResolutionTags(exif: ExifInterface, width: Int, height: Int) {
+            exif.setAttribute(ExifInterface.TAG_IMAGE_WIDTH, width.toString())
+            exif.setAttribute(ExifInterface.TAG_IMAGE_LENGTH, height.toString())
+            exif.setAttribute(ExifInterface.TAG_PIXEL_X_DIMENSION, width.toString())
+            exif.setAttribute(ExifInterface.TAG_PIXEL_Y_DIMENSION, height.toString())
+
+            listOf(
+                ExifInterface.TAG_X_RESOLUTION,
+                ExifInterface.TAG_Y_RESOLUTION,
+                ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION,
+                ExifInterface.TAG_FOCAL_PLANE_Y_RESOLUTION,
+                ExifInterface.TAG_SUBJECT_AREA,
+                ExifInterface.TAG_SUBJECT_LOCATION,
+            ).forEach { tag ->
+                exif.getAttribute(tag)?.let { value ->
+                    exif.setAttribute(tag, halveNumericExifValue(value))
+                }
+            }
+        }
+
+        // Halves each space-separated numeric token; rationals double the
+        // denominator instead, so no precision is lost ("350/1" -> "350/2")
+        internal fun halveNumericExifValue(value: String): String =
+            value.split(" ").joinToString(" ") { token ->
+                val slash = token.indexOf('/')
+                val num = (if (slash >= 0) token.substring(0, slash) else token)
+                    .toLongOrNull() ?: return@joinToString token
+                if (slash >= 0) {
+                    val den = token.substring(slash + 1).toLongOrNull()
+                        ?: return@joinToString token
+                    "$num/${den * 2}"
+                } else {
+                    (num / 2).toString()
+                }
+            }
+
         // NOTE: tags like `XiaomiModel`(0x9a00) aren't accepted by ExifInterface,
         // so device name and `XiaomiSettings`(0x9999) get lost.
         // Mirrors ExifInterface.EXIF_TAGS structure (list of lists by IFD type)

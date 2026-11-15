@@ -55,6 +55,7 @@ fun OptionsScreen(
     val qualityLevel by viewModel.qualityLevel.collectAsState()
     val preserveExif by viewModel.preserveExif.collectAsState()
     val convertPng by viewModel.convertPng.collectAsState()
+    val halveOversized by viewModel.halveOversized.collectAsState()
     val encoder by viewModel.encoder.collectAsState()
 
     LaunchedEffect(bucketId) {
@@ -142,6 +143,13 @@ fun OptionsScreen(
                         onCheckedChange = { viewModel.setConvertPng(bucketId, it) }
                     )
                     Text("Include PNG", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = halveOversized,
+                        onCheckedChange = { viewModel.halveOversized.value = it }
+                    )
+                    Text("Halve 20MP+", style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
