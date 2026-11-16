@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -79,7 +81,8 @@ android {
             all {
                 // Robolectric's Java 17+ flags (robolectric.org/getting-started), plus the export
                 // for FileDescriptorInterceptor, robolectric/robolectric#11434.
-                it.jvmArgs(
+                it.testLogging { exceptionFormat = TestExceptionFormat.FULL }
+            it.jvmArgs(
                     "--add-opens=java.base/java.lang=ALL-UNNAMED",
                     "--add-opens=java.base/java.util=ALL-UNNAMED",
                     "--add-opens=java.base/java.io=ALL-UNNAMED",
