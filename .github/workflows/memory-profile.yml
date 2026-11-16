@@ -7,6 +7,7 @@ on:
 
 jobs:
   profile:
+    if: github.event_name == 'workflow_dispatch' || contains(github.head_ref, 'profile')
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v6
