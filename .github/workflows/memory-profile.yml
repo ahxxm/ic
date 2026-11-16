@@ -32,17 +32,8 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
           script: |
-            status=0
-            for i in $(seq 1 30); do
-              adb shell cmd package list packages >/dev/null 2>&1 && break
-              sleep 2
-            done
-            ./gradlew connectedDebugAndroidTest --stacktrace || status=$?
-            adb logcat -d > logcat.txt || true
-            find app/build/outputs/androidTest-results -name 'TEST-*.xml' -exec cat {} \; \
-              > android-test-results.txt 2>/dev/null || true
-            adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md || true
-            [ "$status" = 0 ] || exit $status
+            for i in $(seq 1 30); do adb shell cmd package list packages >/dev/null 2>&1 && break; sleep 2; done
+            ./gradlew connectedDebugAndroidTest --stacktrace; gradle_status=$?; adb logcat -d > logcat.txt; find app/build/outputs/androidTest-results -name 'TEST-*.xml' -exec cat {} \; > android-test-results.txt 2>/dev/null; adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md; exit $gradle_status
 
       - name: Upload failure evidence
         if: always()
