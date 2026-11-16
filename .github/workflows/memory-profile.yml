@@ -33,10 +33,15 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
           script: |
             status=0
+            for i in $(seq 1 30); do
+              adb shell cmd package list packages >/dev/null 2>&1 && break
+              sleep 2
+            done
             ./gradlew connectedDebugAndroidTest --stacktrace || status=$?
             adb logcat -d > logcat.txt || true
             find app/build/outputs/androidTest-results -name 'TEST-*.xml' -exec cat {} \; \
               > android-test-results.txt 2>/dev/null || true
+            adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md || true
             [ "$status" = 0 ] || exit $status
 
       - name: Upload failure evidence
@@ -49,14 +54,14 @@ jobs:
             android-test-results.txt
           if-no-files-found: ignore
 
-      - name: Pull report
+      - name: Publish report
+        if: always()
         run: |
-          adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md
-          cat memory-profile.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f memory-profile.md ] && cat memory-profile.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload report
         uses: actions/upload-artifact@v7
         with:
           name: memory-profile
           path: memory-profile.md
-          if-no-files-found: error
+          if-no-files-found: ignore
