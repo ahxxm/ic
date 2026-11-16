@@ -28,6 +28,7 @@ android {
         versionCode = baseVersion
         versionName = "$baseVersion.0"
         vectorDrawables.generatedDensities?.clear()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     splits {
@@ -143,6 +144,9 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 
     debugImplementation(platform(libs.compose.bom))
     debugImplementation(libs.compose.ui.tooling)

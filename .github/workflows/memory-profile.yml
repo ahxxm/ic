@@ -1,0 +1,38 @@
+name: Memory profile
+
+on:
+  workflow_dispatch:
+
+jobs:
+  profile:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run profile on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          target: default
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-rtc
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
+
+      - name: Pull report
+        run: |
+          adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md
+          cat memory-profile.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: memory-profile
+          path: memory-profile.md
+          if-no-files-found: error
