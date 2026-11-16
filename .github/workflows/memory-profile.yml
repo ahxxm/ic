@@ -31,7 +31,23 @@ jobs:
           avd-name: atd
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
-          script: ./gradlew connectedDebugAndroidTest --stacktrace
+          script: |
+            status=0
+            ./gradlew connectedDebugAndroidTest --stacktrace || status=$?
+            adb logcat -d > logcat.txt || true
+            find app/build/outputs/androidTest-results -name 'TEST-*.xml' -exec cat {} \; \
+              > android-test-results.txt 2>/dev/null || true
+            [ "$status" = 0 ] || exit $status
+
+      - name: Upload failure evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: androidtest-evidence
+          path: |
+            logcat.txt
+            android-test-results.txt
+          if-no-files-found: ignore
 
       - name: Pull report
         run: |
