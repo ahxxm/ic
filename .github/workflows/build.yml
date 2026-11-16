@@ -63,4 +63,4 @@ jobs:
       - name: Diff ExifInterface tags against copied list
         run: |
           ./gradlew testDebugUnitTest --tests "io.ahxxm.ic.domain.ExifTagCoverageTest"
-          cat app/build/exif-tag-diff.txt
+          find . -path '*/build/exif-tag-diff.txt' -print -quit | xargs cat
