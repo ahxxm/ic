@@ -12,12 +12,10 @@ import io.ahxxm.ic.domain.ImageRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -60,14 +58,12 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
 
     private val compressionTrigger = combine(
         qualityLevel, encoder, preserveExif, halveOversized
-    ) { _, _, _, _ -> Unit }
+    ) { _, _, _, _ -> }
         .debounce(300)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         viewModelScope.launch {
-            compressionTrigger.collect { triggered ->
-                triggered ?: return@collect
+            compressionTrigger.collect {
                 val sample = sampleImage ?: return@collect
                 compress(sample)
             }
