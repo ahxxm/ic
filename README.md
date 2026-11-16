@@ -11,7 +11,7 @@ A minimalist and opinionated Android app for offline/on-device JPEG/PNG compress
 
 Options:
 - EXIF metadata preservation
-- PNG to JPEG conversion
+- Halve 20MP+ photos: both dimensions, so 75% pixels cut
 
 Encoders:
 - mozjpeg: Mozilla's optimized JPEG encoder
