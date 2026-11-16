@@ -90,10 +90,11 @@ class MemoryProfileTest {
 
                 result.tempFile?.delete()
                 appContext.contentResolver.delete(uri, null, null)
-                sourceFile.delete()
                 System.gc()
                 Thread.sleep(200)
             }
+
+            sourceFile.delete()
         }
 
         val report = buildReport(am, rows)
