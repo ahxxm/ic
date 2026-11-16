@@ -123,8 +123,8 @@ class ImageCompressor(private val context: Context) {
             halveOversized && width.toLong() * height > CompressionOptions.OVERSIZE_PIXELS
 
         // Tags copied verbatim describe the original resolution. The four
-        // dimension tags state it directly; the rest encode pixel coordinates
-        // or pixel densities and are halved along with the image.
+        // dimension tags state it directly; the rest encode pixel densities
+        // and are halved along with the image.
         internal fun restateResolutionTags(exif: ExifInterface, width: Int, height: Int) {
             exif.setAttribute(ExifInterface.TAG_IMAGE_WIDTH, width.toString())
             exif.setAttribute(ExifInterface.TAG_IMAGE_LENGTH, height.toString())
@@ -145,10 +145,12 @@ class ImageCompressor(private val context: Context) {
             }
         }
 
-        // Rationals double the denominator rather than halve the numerator,
-        // which stays exact for odd numerators ("351/1" -> "351/2")
+        // Multi-value separator must be ",": ExifInterface's setAttribute
+        // splits on it and silently drops values in any other format
+        // https://github.com/androidx/androidx/blob/androidx-main/exifinterface/exifinterface/src/main/java/androidx/exifinterface/media/ExifInterface.java
+        // Doubling the denominator stays exact for odd numerators ("351/1" -> "351/2")
         internal fun halveNumericExifValue(value: String): String =
-            value.split(" ").joinToString(" ") { token ->
+            value.split(",").joinToString(",") { token ->
                 val slash = token.indexOf('/')
                 val num = (if (slash >= 0) token.substring(0, slash) else token)
                     .toLongOrNull() ?: return@joinToString token

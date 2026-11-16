@@ -37,7 +37,7 @@ class HalvingDecisionTest {
 
     @Test
     fun `odd integer tokens floor, rationals double denominator, garbage passes through`() {
-        assertEquals("1000 1500 50 50", ImageCompressor.halveNumericExifValue("2000 3001 101 100"))
+        assertEquals("1000,1500,50,50", ImageCompressor.halveNumericExifValue("2000,3001,101,100"))
         assertEquals("350/2", ImageCompressor.halveNumericExifValue("350/1"))
         assertEquals("not a number", ImageCompressor.halveNumericExifValue("not a number"))
     }
@@ -100,8 +100,8 @@ class ExifRestatementTest {
         val source = ExifInterface(jpeg)
         source.setAttribute(ExifInterface.TAG_X_RESOLUTION, "350/1")
         source.setAttribute(ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION, "800/1")
-        source.setAttribute(ExifInterface.TAG_SUBJECT_AREA, "2000 3000 100 100")
-        source.setAttribute(ExifInterface.TAG_SUBJECT_LOCATION, "2000 3000")
+        source.setAttribute(ExifInterface.TAG_SUBJECT_AREA, "2000,3000,100,100")
+        source.setAttribute(ExifInterface.TAG_SUBJECT_LOCATION, "2000,3000")
         source.saveAttributes()
 
         val dest = ExifInterface(jpeg)
@@ -116,8 +116,8 @@ class ExifRestatementTest {
             ExifInterface.TAG_PIXEL_Y_DIMENSION to "750",
             ExifInterface.TAG_X_RESOLUTION to "350/2",
             ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION to "800/2",
-            ExifInterface.TAG_SUBJECT_AREA to "1000 1500 50 50",
-            ExifInterface.TAG_SUBJECT_LOCATION to "1000 1500",
+            ExifInterface.TAG_SUBJECT_AREA to "1000,1500,50,50",
+            ExifInterface.TAG_SUBJECT_LOCATION to "1000,1500",
         )
         val mismatches = expected.entries
             .filter { out.getAttribute(it.key) != it.value }
