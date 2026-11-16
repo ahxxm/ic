@@ -48,21 +48,19 @@ jobs:
         with:
           files: app/build/outputs/apk/release/*.apk
 
-  ios:
-    runs-on: macos-26
+  exif-tag-diff:
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v6
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Stub local signing config
-        run: cp ios/ic/Local.xcconfig.example ios/ic/Local.xcconfig
-
-      - name: Build for simulator
+      - name: Diff ExifInterface tags against copied list
         run: |
-          xcodebuild build \
-            -project ios/ic/ic.xcodeproj \
-            -scheme ic \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
+          ./gradlew testDebugUnitTest --tests "io.ahxxm.ic.domain.ExifTagCoverageTest"
+          cat app/build/exif-tag-diff.txt

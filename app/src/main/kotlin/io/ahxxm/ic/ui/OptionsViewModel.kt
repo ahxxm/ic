@@ -12,12 +12,10 @@ import io.ahxxm.ic.domain.ImageRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -49,8 +47,8 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
 
     val qualityLevel = MutableStateFlow(QualityLevel.GOOD)
     val preserveExif = MutableStateFlow(true)
-    val convertPng = MutableStateFlow(true)
-    val encoder = MutableStateFlow(Encoder.MOZJPEG)
+    val encoder = MutableStateFlow(Encoder.JPEGLI)
+    val halveOversized = MutableStateFlow(true)
 
     private val _sampleState = MutableStateFlow<SampleState>(SampleState.Loading)
     val sampleState: StateFlow<SampleState> = _sampleState
@@ -59,17 +57,15 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     val navigateBack = _navigateBack.receiveAsFlow()
 
     private val compressionTrigger = combine(
-        qualityLevel, encoder, preserveExif
-    ) { q, e, p -> Triple(q, e, p) }
+        qualityLevel, encoder, preserveExif, halveOversized
+    ) { _, _, _, _ -> }
         .debounce(300)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         viewModelScope.launch {
-            compressionTrigger.collect { params ->
-                params ?: return@collect
+            compressionTrigger.collect {
                 val sample = sampleImage ?: return@collect
-                compress(sample, params.first, params.second, params.third)
+                compress(sample)
             }
         }
     }
@@ -77,7 +73,7 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     fun loadSampleImage(bucketId: Long) {
         viewModelScope.launch {
             val images = repository.getImagesInFolder(bucketId)
-                .filter { it.isJpeg || it.isPng }
+                .filter { it.isProcessable }
 
             val current = sampleImage
             if (current != null && images.any { it.uri == current.uri }) {
@@ -91,49 +87,30 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
             }
 
             sampleImage = sample
-            compress(sample, qualityLevel.value, encoder.value, preserveExif.value)
+            compress(sample)
         }
     }
 
-    fun setConvertPng(bucketId: Long, enabled: Boolean) {
-        if (convertPng.value == enabled) return
-        convertPng.value = enabled
-        sampleImage = null
-        viewModelScope.launch {
-            val images = repository.getImagesInFolder(bucketId)
-                .filter { if (enabled) it.isJpeg || it.isPng else it.isJpeg }
-
-            val sample = images.randomOrNull()
-            if (sample == null) {
-                _navigateBack.send(Unit)
-                return@launch
-            }
-            sampleImage = sample
-            compress(sample, qualityLevel.value, encoder.value, preserveExif.value)
-        }
+    fun presetEncoder(folderName: String) {
+        encoder.value = defaultEncoderFor(folderName)
     }
 
     fun buildOptions(): CompressionOptions = CompressionOptions(
         quality = qualityLevel.value.qualityFor(encoder.value),
         preserveExif = preserveExif.value,
-        convertPng = convertPng.value,
-        encoder = encoder.value
+        encoder = encoder.value,
+        halveOversized = halveOversized.value
     )
 
-    private suspend fun compress(
-        image: ImageItem,
-        quality: QualityLevel,
-        enc: Encoder,
-        keepExif: Boolean
-    ) {
+    private suspend fun compress(image: ImageItem) {
         _sampleState.value = SampleState.Loading
         currentTempFile?.delete()
 
         val options = CompressionOptions(
-            quality = quality.qualityFor(enc),
-            preserveExif = keepExif,
-            convertPng = convertPng.value,
-            encoder = enc
+            quality = qualityLevel.value.qualityFor(encoder.value),
+            preserveExif = preserveExif.value,
+            encoder = encoder.value,
+            halveOversized = halveOversized.value
         )
         val result = compressor.compressImage(image, options)
         currentTempFile = result.tempFile
@@ -148,5 +125,14 @@ class OptionsViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         super.onCleared()
         currentTempFile?.delete()
+    }
+
+    companion object {
+        // Screenshot folders hold graphics, where mozjpeg's ringing suppression
+        // beats jpegli's photo tuning; photos default to jpegli
+        internal fun defaultEncoderFor(folderName: String): Encoder =
+            if (folderName.contains("screen", ignoreCase = true) ||
+                folderName.contains("shot", ignoreCase = true)
+            ) Encoder.MOZJPEG else Encoder.JPEGLI
     }
 }

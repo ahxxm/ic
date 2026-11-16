@@ -189,14 +189,20 @@ class LargeFontLayoutTest(
         }
     }
 
+    // Chip shape, not values: q follows the encoder default and quality map
+    private val qualityChip = Regex("^[a-z]+ q\\d+$")
+
+    private fun qualityChipTexts(): List<String> =
+        textNodes().map { it.text }.filter { it.matches(qualityChip) }
+
     private fun assertOptionsScreenHolds() {
         assertTextStaysInsideHorizontally()
-        assertChipsFollowLabel("Quality", listOf("ok q75", "good q85", "great q90"))
-        assertLabelsStayOnOneLine(
-            listOf("ok q75", "good q85", "great q90", "Compress"),
-            labelLineHeight
-        )
-        assertLabelsStayOnOneLine(listOf("Keep EXIF", "Include PNG"), bodyLineHeight)
+
+        val chips = qualityChipTexts()
+        assertTrue("expected 3 quality chips, found $chips", chips.size == 3)
+        assertChipsFollowLabel("Quality", chips)
+        assertLabelsStayOnOneLine(chips + "Compress", labelLineHeight)
+        assertLabelsStayOnOneLine(listOf("Keep EXIF", "Halve 20MP+"), bodyLineHeight)
         assertNoTextNodesOverlap()
         assertReachable("Compress")
     }
