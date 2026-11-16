@@ -12,8 +12,8 @@ import io.github.awxkee.jpegli.coder.IccStrategy
 import io.github.awxkee.jpegli.coder.JpegliCoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 
 class ImageCompressor(private val context: Context) {
@@ -22,6 +22,7 @@ class ImageCompressor(private val context: Context) {
         image: ImageItem,
         options: CompressionOptions
     ): CompressionResult = withContext(Dispatchers.IO) {
+        var tempFile: File? = null
         try {
             val inputStream = openOriginalStream(image.uri)
                 ?: return@withContext CompressionResult(
@@ -55,10 +56,15 @@ class ImageCompressor(private val context: Context) {
                     error = "Cannot decode image"
                 )
 
-            val tempFile = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
-            val compressed = when (options.encoder) {
-                Encoder.MOZJPEG -> Aire.mozjpeg(bitmap, options.quality)
-                Encoder.JPEGLI -> ByteArrayOutputStream().use { out ->
+            val file = File(context.cacheDir, "compressed_${System.currentTimeMillis()}.jpg")
+            tempFile = file
+            val outWidth = bitmap.width
+            val outHeight = bitmap.height
+            when (options.encoder) {
+                // aire has no OutputStream API; upstream builds the full
+                // ByteArray either way
+                Encoder.MOZJPEG -> file.writeBytes(Aire.mozjpeg(bitmap, options.quality))
+                Encoder.JPEGLI -> FileOutputStream(file).use { out ->
                     JpegliCoder.compress(
                         bitmap = bitmap,
                         quality = options.quality,
@@ -66,12 +72,8 @@ class ImageCompressor(private val context: Context) {
                         outputStream = out,
                         strategy = IccStrategy.XYB
                     )
-                    out.toByteArray()
                 }
             }
-            val outWidth = bitmap.width
-            val outHeight = bitmap.height
-            tempFile.writeBytes(compressed)
             bitmap.recycle()
 
             if (options.preserveExif && image.isJpeg) {
@@ -80,11 +82,12 @@ class ImageCompressor(private val context: Context) {
 
             CompressionResult(
                 originalSize = image.sizeBytes,
-                compressedSize = tempFile.length(),
-                tempFile = tempFile,
+                compressedSize = file.length(),
+                tempFile = file,
                 success = true
             )
         } catch (e: Exception) {
+            tempFile?.delete()
             CompressionResult(
                 originalSize = image.sizeBytes,
                 compressedSize = 0,
