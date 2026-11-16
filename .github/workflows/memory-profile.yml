@@ -31,11 +31,14 @@ jobs:
           avd-name: atd
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
+          # The runner executes each line as its own sh, so shell state must
+          # stay inside a single line. Bypasses AGP's connected-test device
+          # filter; gradle only assembles the two APKs.
           script: |
             adb wait-for-device
-            adb devices -l; adb shell getprop ro.build.version.sdk; adb shell getprop ro.product.cpu.abi; adb shell getprop sys.boot_completed
+            adb shell getprop ro.build.version.sdk; adb shell getprop ro.product.cpu.abi; adb shell getprop sys.boot_completed
             for i in $(seq 1 60); do adb shell cmd package list packages >/dev/null 2>&1 && break; sleep 2; done
-            ./gradlew connectedDebugAndroidTest --stacktrace; gradle_status=$?; adb logcat -d > logcat.txt; find app/build/outputs/androidTest-results -name 'TEST-*.xml' -exec cat {} \; > android-test-results.txt 2>/dev/null; adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md; exit $gradle_status
+            ./gradlew assembleDebug assembleDebugAndroidTest > build.log 2>&1; gradle_status=$?; tail -3 build.log; APP_APK=$(find app/build/outputs/apk/debug -name 'app-x86_64-debug.apk' | head -1); TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest*.apk' | head -1); adb install -r "$APP_APK" || gradle_status=1; adb install -r "$TEST_APK" || gradle_status=1; out=$(adb shell am instrument -w io.ahxxm.ic.test/androidx.test.runner.AndroidJUnitRunner); echo "$out" > instrument.txt; echo "$out" | tail -15; case "$out" in *"OK (1 test)"*) ;; *) gradle_status=1;; esac; adb logcat -d > logcat.txt; adb exec-out run-as io.ahxxm.ic cat files/memory-profile.md > memory-profile.md; exit $gradle_status
 
       - name: Upload failure evidence
         if: always()
@@ -44,7 +47,7 @@ jobs:
           name: androidtest-evidence
           path: |
             logcat.txt
-            android-test-results.txt
+            instrument.txt
           if-no-files-found: ignore
 
       - name: Publish report
