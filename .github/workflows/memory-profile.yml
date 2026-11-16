@@ -18,13 +18,18 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Install ATD system image
+        run: |
+          sdkmanager --install "system-images;android-30;aosp_atd;x86_64" > /dev/null
+          echo no | avdmanager create avd -n atd -k "system-images;android-30;aosp_atd;x86_64" -d pixel_5
+
       - name: Run profile on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 31
-          target: default
-          arch: x86_64
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-rtc
+          api-level: 30
+          avd-name: atd
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 
       - name: Pull report
